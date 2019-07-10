@@ -198,9 +198,12 @@ extern "C" {
 #define PKT_RX_OUTER_L4_CKSUM_GOOD	(1ULL << 22)
 #define PKT_RX_OUTER_L4_CKSUM_INVALID	((1ULL << 21) | (1ULL << 22))
 
-/* add new RX flags here */
+/* add new RX flags here, don't forget to update PKT_FIRST_FREE */
 
-/* add new TX flags here */
+#define PKT_FIRST_FREE (1ULL << 23)
+#define PKT_LAST_FREE (1ULL << 39)
+
+/* add new TX flags here, don't forget to update PKT_LAST_FREE  */
 
 /**
  * Indicate that the metadata field in the mbuf is in use.
@@ -738,6 +741,7 @@ struct rte_mbuf {
 	 */
 	struct rte_mbuf_ext_shared_info *shinfo;
 
+	uint64_t dynfield1[2]; /**< Reserved for dynamic fields. */
 } __rte_cache_aligned;
 
 /**
@@ -1685,6 +1689,20 @@ rte_pktmbuf_attach_extbuf(struct rte_mbuf *m, void *buf_addr,
 #define rte_pktmbuf_detach_extbuf(m) rte_pktmbuf_detach(m)
 
 /**
+ * Copy dynamic fields from m_src to m_dst.
+ *
+ * @param m_dst
+ *   The destination mbuf.
+ * @param m_src
+ *   The source mbuf.
+ */
+static inline void
+rte_mbuf_dynfield_copy(struct rte_mbuf *m_dst, const struct rte_mbuf *m_src)
+{
+	memcpy(&m_dst->dynfield1, m_src->dynfield1, sizeof(m_src->dynfield1));
+}
+
+/**
  * Attach packet mbuf to another packet mbuf.
  *
  * If the mbuf we are attaching to isn't a direct buffer and is attached to
@@ -1732,6 +1750,7 @@ static inline void rte_pktmbuf_attach(struct rte_mbuf *mi, struct rte_mbuf *m)
 	mi->vlan_tci_outer = m->vlan_tci_outer;
 	mi->tx_offload = m->tx_offload;
 	mi->hash = m->hash;
+	rte_mbuf_dynfield_copy(mi, m);
 
 	mi->next = NULL;
 	mi->pkt_len = mi->data_len;

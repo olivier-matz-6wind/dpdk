@@ -21,6 +21,13 @@ DPDK Release 19.11
 
       xdg-open build/doc/html/guides/rel_notes/release_19_11.html
 
+* **Add support of support dynamic fields and flags in mbuf.**
+
+  This new feature adds the ability to dynamically register some room
+  for a field or a flag in the mbuf structure. This is typically used
+  for specific offload features, where adding a static field or flag
+  in the mbuf is not justified.
+
 
 New Features
 ------------
