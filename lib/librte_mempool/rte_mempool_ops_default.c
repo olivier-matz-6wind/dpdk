@@ -42,23 +42,36 @@ rte_mempool_op_calc_mem_size_default(const struct rte_mempool *mp,
 			 */
 			objs_in_last_page = ((obj_num - 1) % obj_per_page) + 1;
 			/* room required for the last page */
-			mem_size = objs_in_last_page * total_elt_size;
+			mem_size = objs_in_last_page * total_elt_sz;
 			/* room required for other pages */
-			mem_size += ((obj_num - n_objs_in_last_page) /
+			mem_size += ((obj_num - objs_in_last_page) /
 				obj_per_page) << pg_shift;
 
 			/* In the worst case, the allocator returns a
 			 * non-aligned pointer, wasting up to
-			 * total_elt_size. Add a margin for that.
+			 * total_elt_sz. Add a margin for that.
 			 */
-			 mem_size += total_elt_size - 1;
+			 mem_size += total_elt_sz - 1;
 		}
 	}
 
-	*min_chunk_size = total_elt_size;
+	*min_chunk_size = total_elt_sz;
 	*align = RTE_CACHE_LINE_SIZE;
 
 	return mem_size;
+}
+
+/* Returns -1 if object crosses a page boundary, else returns 0 */
+static int
+check_obj_bounds(char *obj, size_t pg_sz, size_t elt_sz)
+{
+	if (pg_sz == 0)
+		return 0;
+	if (elt_sz > pg_sz)
+		return 0;
+	if (RTE_PTR_ALIGN(obj, pg_sz) != RTE_PTR_ALIGN(obj + elt_sz - 1, pg_sz))
+		return -1;
+	return 0;
 }
 
 int
@@ -66,16 +79,26 @@ rte_mempool_op_populate_default(struct rte_mempool *mp, unsigned int max_objs,
 		void *vaddr, rte_iova_t iova, size_t len,
 		rte_mempool_populate_obj_cb_t *obj_cb, void *obj_cb_arg)
 {
-	size_t total_elt_sz;
+	char *va = vaddr;
+	size_t total_elt_sz, pg_sz;
 	size_t off;
 	unsigned int i;
 	void *obj;
 
+	rte_mempool_get_page_size(mp, &pg_sz);
+
 	total_elt_sz = mp->header_size + mp->elt_size + mp->trailer_size;
 
-	for (off = 0, i = 0; off + total_elt_sz <= len && i < max_objs; i++) {
+	for (off = 0, i = 0; i < max_objs; i++) {
+		/* align offset to next page start if required */
+		if (check_obj_bounds(va + off, pg_sz, total_elt_sz) < 0)
+			off += RTE_PTR_ALIGN_CEIL(va + off, pg_sz) - (va + off);
+
+		if (off + total_elt_sz > len)
+			break;
+
 		off += mp->header_size;
-		obj = (char *)vaddr + off;
+		obj = va + off;
 		obj_cb(mp, obj_cb_arg, obj,
 		       (iova == RTE_BAD_IOVA) ? RTE_BAD_IOVA : (iova + off));
 		rte_mempool_ops_enqueue_bulk(mp, &obj, 1);
