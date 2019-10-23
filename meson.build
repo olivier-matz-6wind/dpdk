@@ -7,9 +7,15 @@ project('DPDK', 'C',
 	version: run_command(find_program('cat', 'more'),
 		files('VERSION')).stdout().strip(),
 	license: 'BSD',
-	default_options: ['buildtype=release', 'default_library=static'],
+	default_options: ['buildtype=debugoptimized',
+			'default_library=static'],
 	meson_version: '>= 0.47.1'
 )
+
+# for default "debugoptimized" builds override optimization level 2 with 3
+if get_option('buildtype') == 'debugoptimized'
+	add_project_arguments('-O3', language: 'c')
+endif
 
 # set up some global vars for compiler, platform, configuration, etc.
 cc = meson.get_compiler('c')
