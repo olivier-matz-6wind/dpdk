@@ -458,7 +458,7 @@ typedef unsigned (*rte_mempool_get_count)(const struct rte_mempool *mp);
  * @param[out] align
  *   Location for required memory chunk alignment.
  * @return
- *   Required memory size aligned at page boundary.
+ *   Required memory size.
  */
 typedef ssize_t (*rte_mempool_calc_mem_size_t)(const struct rte_mempool *mp,
 		uint32_t obj_num,  uint32_t pg_shift,
