@@ -21,3 +21,6 @@ foreach flag: extra_flags
 endforeach
 
 deps += ['eal', 'mbuf', 'kvargs', 'bus_pci', 'common_octeontx2', 'mempool']
+
+# for rte_mempool_get_page_size
+allow_experimental_apis = true
