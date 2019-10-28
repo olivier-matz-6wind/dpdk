@@ -56,5 +56,6 @@ DPDK_18.05 {
 EXPERIMENTAL {
 	global:
 
+	rte_mempool_get_page_size;
 	rte_mempool_ops_get_info;
 };
