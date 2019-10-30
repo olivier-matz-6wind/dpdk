@@ -1688,6 +1688,13 @@ uint32_t rte_mempool_calc_obj_size(uint32_t elt_size, uint32_t flags,
 void rte_mempool_walk(void (*func)(struct rte_mempool *, void *arg),
 		      void *arg);
 
+/**
+ * @internal Get page size used for mempool object allocation.
+ */
+__rte_experimental
+int
+rte_mempool_get_page_size(struct rte_mempool *mp, size_t *pg_sz);
+
 #ifdef __cplusplus
 }
 #endif
