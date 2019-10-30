@@ -56,7 +56,7 @@ rte_mempool_op_calc_mem_size_default(const struct rte_mempool *mp,
 	}
 
 	*min_chunk_size = total_elt_sz;
-	*align = RTE_CACHE_LINE_SIZE;
+	*align = RTE_MEMPOOL_ALIGN;
 
 	return mem_size;
 }
