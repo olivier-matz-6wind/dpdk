@@ -23,6 +23,9 @@ CFLAGS += -diag-disable 2259
 endif
 endif
 
+# for mempool populate/calc_mem_size helpers
+CFLAGS += -DALLOW_EXPERIMENTAL_API
+
 EXPORT_MAP := rte_mempool_octeontx2_version.map
 
 LIBABIVER := 1

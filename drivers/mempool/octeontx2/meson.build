@@ -2,6 +2,9 @@
 # Copyright(C) 2019 Marvell International Ltd.
 #
 
+# for mempool populate/calc_mem_size helpers
+allow_experimental_apis = true
+
 sources = files('otx2_mempool_ops.c',
 		'otx2_mempool.c',
 		'otx2_mempool_irq.c',
