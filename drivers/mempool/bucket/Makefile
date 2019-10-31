@@ -15,6 +15,8 @@ LIB = librte_mempool_bucket.a
 
 CFLAGS += -O3
 CFLAGS += $(WERROR_FLAGS)
+# for mempool populate/calc_mem_size helpers
+CFLAGS += -DALLOW_EXPERIMENTAL_API
 
 LDLIBS += -lrte_eal -lrte_mempool -lrte_ring
 

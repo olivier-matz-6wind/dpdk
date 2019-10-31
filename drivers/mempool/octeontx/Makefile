@@ -11,6 +11,9 @@ LIB = librte_mempool_octeontx.a
 
 CFLAGS += $(WERROR_FLAGS)
 CFLAGS += -I$(RTE_SDK)/drivers/common/octeontx/
+# for mempool populate/calc_mem_size helpers
+CFLAGS += -DALLOW_EXPERIMENTAL_API
+
 EXPORT_MAP := rte_mempool_octeontx_version.map
 
 LIBABIVER := 1
