@@ -42,9 +42,9 @@
  *      put them back in the pool.
  */
 
-#define MEMPOOL_ELT_SIZE 2048
+#define MEMPOOL_ELT_SIZE 256
 #define MAX_KEEP 16
-#define MEMPOOL_SIZE ((rte_lcore_count()*(MAX_KEEP+RTE_MEMPOOL_CACHE_MAX_SIZE))-1)
+#define MEMPOOL_SIZE 1023
 
 #define LOG_ERR() printf("test failed at %s():%d\n", __func__, __LINE__)
 #define RET_ERR() do {							\
