@@ -29,6 +29,8 @@ EXPORT_MAP := rte_mempool_octeontx2_version.map
 
 LIBABIVER := 1
 
+CFLAGS += -DALLOW_EXPERIMENTAL_API
+
 #
 # all source are stored in SRCS-y
 #

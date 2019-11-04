@@ -23,3 +23,5 @@ foreach flag: extra_flags
 endforeach
 
 deps += ['eal', 'mbuf', 'kvargs', 'bus_pci', 'common_octeontx2', 'mempool']
+
+allow_experimental_apis = true
