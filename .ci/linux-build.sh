@@ -30,7 +30,51 @@ fi
 
 OPTS="$OPTS --default-library=$DEF_LIB"
 meson build --werror -Dexamples=all $OPTS
+
+if [ "$ABI_CHECKS" = "1" ]; then
+    git remote add ref ${REF_GIT_REPO:-https://dpdk.org/git/dpdk}
+    git fetch --tags ref ${REF_GIT_BRANCH:-master}
+
+    head=$(git describe --all)
+    tag=$(git describe --abbrev=0)
+
+    if [ "$(cat reference/VERSION 2>/dev/null)" != "$tag" ]; then
+        rm -rf reference
+    fi
+
+    if [ ! -d reference ]; then
+        gen_abi_dump=$(mktemp -t gen-abi-dump-XXX.sh)
+        cp -a devtools/gen-abi-dump.sh $gen_abi_dump
+
+        git checkout -qf $tag
+        ninja -C build
+        $gen_abi_dump build reference
+
+        if [ "$AARCH64" != "1" ]; then
+            mkdir -p reference/app
+            cp -a build/app/dpdk-testpmd reference/app/
+
+            export LD_LIBRARY_PATH=$(pwd)/build/lib:$(pwd)/build/drivers
+            devtools/test-null.sh reference/app/dpdk-testpmd
+            unset LD_LIBRARY_PATH
+        fi
+        echo $tag > reference/VERSION
+
+        rm $gen_abi_dump
+        git checkout -qf $head
+    fi
+fi
+
 ninja -C build
+
+if [ "$ABI_CHECKS" = "1" ]; then
+    devtools/check-abi-dump.sh build reference ${ABI_CHECKS_WARN_ONLY:-}
+    if [ "$AARCH64" != "1" ]; then
+        export LD_LIBRARY_PATH=$(pwd)/build/lib:$(pwd)/build/drivers
+        devtools/test-null.sh reference/app/dpdk-testpmd
+        unset LD_LIBRARY_PATH
+    fi
+fi
 
 if [ "$AARCH64" != "1" ]; then
     devtools/test-null.sh
