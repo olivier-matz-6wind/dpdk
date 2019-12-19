@@ -513,6 +513,31 @@ in a single subfolder called "__builds" created in the current directory.
 Setting ``DPDK_BUILD_TEST_DIR`` to an absolute directory path e.g. ``/tmp`` is also supported.
 
 
+Checking ABI compatibility
+--------------------------
+
+The first thing is to build reference binaries for the latest release your
+patches are built on top of.
+
+Either you are in a git tree and an easy way to identify this is to run::
+
+  git checkout $(git describe --abbrev=0)
+
+Or you use a tarball and you extract the sources in a director of your choice.
+
+Next is building those sources, refer to the previous paragraph.
+You can set ``DPDK_BUILD_TEST_DIR=reference``, so that the builds occur in this
+directory.
+
+Finally, the ABI dump files are generated with the
+``devtools/gen-abi-reference.sh`` script. This script will look for builds in
+the current sub directory ``reference``. But you can set the environment
+variable ``DPDK_ABI_REF_BUILD_DIR`` to a different location.
+
+Once done, you can check your current binaries ABI with this reference with the
+``devtools/check-abi-reference.sh`` script.
+
+
 Sending Patches
 ---------------
 

@@ -30,7 +30,8 @@ default_path=$PATH
 # - LIBSSO_SNOW3G_PATH
 # - LIBSSO_KASUMI_PATH
 # - LIBSSO_ZUC_PATH
-. $(dirname $(readlink -f $0))/load-devel-config
+devtools_dir=$(dirname $(readlink -f $0))
+. $devtools_dir/load-devel-config
 
 print_usage () {
 	echo "usage: $(basename $0) [-h] [-jX] [-s] [config1 [config2] ...]]"
@@ -64,6 +65,7 @@ print_help () {
 [ -z $MAKE ] && echo "Cannot find make or gmake" && exit 1
 
 J=$DPDK_MAKE_JOBS
+abi_ref_build_dir=${DPDK_ABI_REF_BUILD_DIR:-reference}
 builds_dir=${DPDK_BUILD_TEST_DIR:-.}
 short=false
 unset verbose
@@ -97,7 +99,7 @@ trap "signal=INT ; trap - INT ; kill -INT $$" INT
 # notify result on exit
 trap on_exit EXIT
 
-cd $(dirname $(readlink -f $0))/..
+cd $devtools_dir/..
 
 reset_env ()
 {
@@ -233,7 +235,7 @@ for conf in $configs ; do
 	# reload config with DPDK_TARGET set
 	DPDK_TARGET=$target
 	reset_env
-	. $(dirname $(readlink -f $0))/load-devel-config
+	. $devtools_dir/load-devel-config
 
 	options=$(echo $conf | sed 's,[^~+]*,,')
 	dir=$builds_dir/$conf
@@ -246,6 +248,11 @@ for conf in $configs ; do
 	export RTE_TARGET=$target
 	rm -rf $dir/install
 	${MAKE} install O=$dir DESTDIR=$dir/install prefix=
+	if [ -d $abi_ref_build_dir/$conf/dump ]; then
+		echo "================== Check ABI $conf"
+		$devtools_dir/check-abi-dump.sh $dir/install \
+			$abi_ref_build_dir/$conf/dump
+	fi
 	echo "================== Build examples for $conf"
 	export RTE_SDK=$(readlink -f $dir)/install/share/dpdk
 	ln -sTf $(pwd)/lib $RTE_SDK/lib # workaround for vm_power_manager

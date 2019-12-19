@@ -16,6 +16,7 @@ srcdir=$(dirname $(readlink -f $0))/..
 
 MESON=${MESON:-meson}
 use_shared="--default-library=shared"
+abi_ref_build_dir=${DPDK_ABI_REF_BUILD_DIR:-reference}
 builds_dir=${DPDK_BUILD_TEST_DIR:-.}
 
 if command -v gmake >/dev/null 2>&1 ; then
@@ -87,6 +88,11 @@ build () # <directory> <target compiler> <meson options>
 	else
 		echo "$ninja_cmd -C $builddir"
 		$ninja_cmd -C $builddir
+	fi
+
+	if [ -d $abi_ref_build_dir/$1/dump ]; then
+		$srcdir/devtools/check-abi-dump.sh $builddir
+			$abi_ref_build_dir/$1/dump
 	fi
 }
 
