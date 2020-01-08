@@ -297,8 +297,8 @@ mempool_ops_alloc_once(struct rte_mempool *mp)
  * zone. Return the number of objects added, or a negative value
  * on error.
  */
-int
-rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
+static int
+__rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
 	rte_iova_t iova, size_t len, rte_mempool_memchunk_free_cb_t *free_cb,
 	void *opaque)
 {
@@ -332,7 +332,7 @@ rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
 		off = RTE_PTR_ALIGN_CEIL(vaddr, RTE_MEMPOOL_ALIGN) - vaddr;
 
 	if (off > len) {
-		ret = -EINVAL;
+		ret = -ENOBUFS;
 		goto fail;
 	}
 
@@ -343,7 +343,7 @@ rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
 
 	/* not enough room to store one object */
 	if (i == 0) {
-		ret = -EINVAL;
+		ret = -ENOBUFS;
 		goto fail;
 	}
 
@@ -353,6 +353,22 @@ rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
 
 fail:
 	rte_free(memhdr);
+	return ret;
+}
+
+/* Compat wrapper, to be removed when changing the API is allowed (v20.11). */
+int
+rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
+	rte_iova_t iova, size_t len, rte_mempool_memchunk_free_cb_t *free_cb,
+	void *opaque)
+{
+	int ret;
+
+	ret = __rte_mempool_populate_iova(mp, vaddr, iova, len, free_cb,
+					opaque);
+	if (ret == -ENOBUFS)
+		ret = -EINVAL;
+
 	return ret;
 }
 
@@ -406,8 +422,10 @@ rte_mempool_populate_virt(struct rte_mempool *mp, char *addr,
 				break;
 		}
 
-		ret = rte_mempool_populate_iova(mp, addr + off, iova,
+		ret = __rte_mempool_populate_iova(mp, addr + off, iova,
 			phys_len, free_cb, opaque);
+		if (ret == -ENOBUFS)
+			continue;
 		if (ret < 0)
 			goto fail;
 		/* no need to call the free callback for next chunks */
