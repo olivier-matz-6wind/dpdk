@@ -1109,6 +1109,7 @@ rte_mempool_free(struct rte_mempool *mp);
  *   The number of objects added on success.
  *   On error, the chunk is not added in the memory list of the
  *   mempool and a negative errno is returned:
+ *   (-EINVAL): not enough room in chunk for one object.
  *   (-ENOBUFS): not enough room in chunk for one object.
  *   (-ENOSPC): mempool is already populated.
  *   (-ENOMEM): allocation failure.
