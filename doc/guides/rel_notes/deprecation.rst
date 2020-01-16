@@ -86,3 +86,8 @@ Deprecation Notices
   to set new power environment if power environment was already initialized.
   In this case the function will return -1 unless the environment is unset first
   (using ``rte_power_unset_env``). Other function usage scenarios will not change.
+
+* mempool: starting from v20.05, the API of rte_mempool_populate_iova()
+  and rte_mempool_populate_virt() will change to return 0 instead
+  of -EINVAL when there is not enough room to store one object. The ABI
+  will be preserved until 20.11.
