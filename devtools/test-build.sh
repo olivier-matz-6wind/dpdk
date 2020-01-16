@@ -242,7 +242,7 @@ for conf in $configs ; do
 	config $dir $target $options
 
 	echo "================== Build $conf"
-	${MAKE} -j$J EXTRA_CFLAGS="$maxerr $DPDK_DEP_CFLAGS" \
+	${MAKE} -j$J EXTRA_CFLAGS="$maxerr -O0 -g $DPDK_DEP_CFLAGS" \
 		EXTRA_LDFLAGS="$DPDK_DEP_LDFLAGS" $verbose O=$dir
 	! $short || break
 	export RTE_TARGET=$target
