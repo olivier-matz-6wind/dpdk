@@ -16,6 +16,7 @@
 
 #include <rte_common.h>
 #include <rte_log.h>
+#include <rte_errno.h>
 #include <rte_debug.h>
 #include <rte_memory.h>
 #include <rte_memcpy.h>
@@ -135,6 +136,23 @@ static void cmd_dump_parsed(void *parsed_result,
 		rte_malloc_dump_stats(stdout, NULL);
 	else if (!strcmp(res->dump, "dump_malloc_heaps"))
 		rte_malloc_dump_heaps(stdout);
+	else if (!strcmp(res->dump, "pouet")) {
+		struct rte_mempool *mp;
+		char *buf;
+		int ret;
+
+		mp = rte_mempool_create_empty("toto", 10, 10, 0, 0, SOCKET_ID_ANY, 0);
+		printf("mp = %p, errno = %d\n", mp, rte_errno);
+		buf = rte_zmalloc("buf", 1, 0);
+		printf("buf = %p\n", buf);
+		if (buf && mp) {
+			ret = rte_mempool_populate_iova(mp, buf, 0,
+							1, NULL, NULL);
+			printf("ret = %d\n", ret);
+		}
+		rte_mempool_free(mp);
+		rte_free(buf);
+	}
 }
 
 cmdline_parse_token_string_t cmd_dump_dump =
@@ -147,7 +165,8 @@ cmdline_parse_token_string_t cmd_dump_dump =
 				 "dump_malloc_stats#"
 				 "dump_malloc_heaps#"
 				 "dump_devargs#"
-				 "dump_log_types");
+				 "dump_log_types#"
+				 "pouet");
 
 cmdline_parse_inst_t cmd_dump = {
 	.f = cmd_dump_parsed,  /* function to call */
