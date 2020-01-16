@@ -589,7 +589,7 @@ rte_mempool_populate_default(struct rte_mempool *mp)
 
 			max_alloc_size = RTE_MIN(max_alloc_size,
 						(size_t)mem_size) / 2;
-		} while (max_alloc_size >= min_chunk_size);
+		} while (mz == NULL && max_alloc_size >= min_chunk_size);
 
 		if (mz == NULL) {
 			ret = -rte_errno;
