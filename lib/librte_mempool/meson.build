@@ -18,3 +18,4 @@ deps += ['ring']
 
 # memseg walk is not yet part of stable API
 allow_experimental_apis = true
+use_function_versioning = true
