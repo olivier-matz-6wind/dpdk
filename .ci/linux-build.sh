@@ -36,7 +36,8 @@ if [ "$ABI_CHECKS" = "1" ]; then
     git fetch --tags ref ${REF_GIT_BRANCH:-master}
 
     head=$(git describe --all)
-    tag=$(git describe --abbrev=0)
+    #tag=$(git describe --abbrev=0)
+    tag=fe0b984d36
 
     if [ "$(cat reference/VERSION 2>/dev/null)" != "$tag" ]; then
         rm -rf reference
