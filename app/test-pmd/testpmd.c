@@ -3524,6 +3524,25 @@ main(int argc, char** argv)
 	if (strlen(cmdline_filename) != 0)
 		cmdline_read_from_file(cmdline_filename);
 
+	{
+		struct rte_mempool *mp;
+		char *buf;
+		int ret;
+
+		mp = rte_mempool_create_empty("toto", 10, 10, 0, 0, SOCKET_ID_ANY, 0);
+		printf("mp = %p, errno = %d\n", mp, rte_errno);
+		rte_mempool_set_ops_byname(mp, "ring_mp_mc", NULL);
+		buf = rte_zmalloc("buf", 1, 0);
+		printf("buf = %p\n", buf);
+		if (buf && mp) {
+			ret = rte_mempool_populate_iova(mp, buf, 0,
+							1, NULL, NULL);
+			printf("ret = %d\n", ret);
+		}
+		rte_mempool_free(mp);
+		rte_free(buf);
+	}
+
 	if (interactive == 1) {
 		if (auto_start) {
 			printf("Start automatic packet forwarding\n");
