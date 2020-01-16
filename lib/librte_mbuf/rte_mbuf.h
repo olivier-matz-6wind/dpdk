@@ -323,6 +323,24 @@ rte_pktmbuf_priv_flags(struct rte_mempool *mp)
 	return mbp_priv->flags;
 }
 
+/**
+ * When set pktmbuf mempool will hold only mbufs with pinned external
+ * buffer. The external buffer will be attached on the mbuf at the
+ * memory pool creation and will never be detached by the mbuf free calls.
+ * mbuf should not contain any room for data after the mbuf structure.
+ */
+#define RTE_PKTMBUF_POOL_F_PINNED_EXT_BUF (1 << 0)
+
+/**
+ * Returns non zero if given mbuf has an pinned external buffer, or zero
+ * otherwise. The pinned external buffer is allocated at pool creation
+ * time and should not be freed on mbuf freeing.
+ *
+ * External buffer is a user-provided anonymous buffer.
+ */
+#define RTE_MBUF_HAS_PINNED_EXTBUF(mb) \
+	(rte_pktmbuf_priv_flags(mb->pool) & RTE_PKTMBUF_POOL_F_PINNED_EXT_BUF)
+
 #ifdef RTE_LIBRTE_MBUF_DEBUG
 
 /**  check mbuf type in debug mode */
@@ -588,7 +606,8 @@ static inline struct rte_mbuf *rte_mbuf_raw_alloc(struct rte_mempool *mp)
 static __rte_always_inline void
 rte_mbuf_raw_free(struct rte_mbuf *m)
 {
-	RTE_ASSERT(RTE_MBUF_DIRECT(m));
+	RTE_ASSERT(!RTE_MBUF_CLONED(m) &&
+		  (!RTE_MBUF_HAS_EXTBUF(m) || RTE_MBUF_HAS_PINNED_EXTBUF(m)));
 	RTE_ASSERT(rte_mbuf_refcnt_read(m) == 1);
 	RTE_ASSERT(m->next == NULL);
 	RTE_ASSERT(m->nb_segs == 1);
@@ -794,7 +813,7 @@ static inline void rte_pktmbuf_reset(struct rte_mbuf *m)
 	m->nb_segs = 1;
 	m->port = MBUF_INVALID_PORT;
 
-	m->ol_flags = 0;
+	m->ol_flags &= EXT_ATTACHED_MBUF;
 	m->packet_type = 0;
 	rte_pktmbuf_reset_headroom(m);
 
@@ -1158,11 +1177,26 @@ static inline void rte_pktmbuf_detach(struct rte_mbuf *m)
 	uint32_t mbuf_size, buf_len;
 	uint16_t priv_size;
 
-	if (RTE_MBUF_HAS_EXTBUF(m))
-		__rte_pktmbuf_free_extbuf(m);
-	else
-		__rte_pktmbuf_free_direct(m);
+	if (RTE_MBUF_HAS_EXTBUF(m)) {
+		/*
+		 * The mbuf has the external attached buffer,
+		 * we should check the type of the memory pool where
+		 * the mbuf was allocated from to detect the pinned
+		 * external buffer.
+		 */
+		uint32_t flags = rte_pktmbuf_priv_flags(mp);
 
+		if (flags & RTE_PKTMBUF_POOL_F_PINNED_EXT_BUF) {
+			/*
+			 * The pinned external buffer should not be
+			 * detached from its backing mbuf, just exit.
+			 */
+			return;
+		}
+		__rte_pktmbuf_free_extbuf(m);
+	} else {
+		__rte_pktmbuf_free_direct(m);
+	}
 	priv_size = rte_pktmbuf_priv_size(mp);
 	mbuf_size = (uint32_t)(sizeof(struct rte_mbuf) + priv_size);
 	buf_len = rte_pktmbuf_data_room_size(mp);
@@ -1174,6 +1208,51 @@ static inline void rte_pktmbuf_detach(struct rte_mbuf *m)
 	rte_pktmbuf_reset_headroom(m);
 	m->data_len = 0;
 	m->ol_flags = 0;
+}
+
+/**
+ * @internal version of rte_pktmbuf_detach() to be used on mbuf freeing.
+ * For indirect and regular (not pinned) external mbufs the standard
+ * rte_pktmbuf is involved, for pinned external buffer mbufs the special
+ * handling is performed:
+ *
+ *  - return zero if reference counter in shinfo is one. It means there is
+ *  no more references to this pinned buffer and mbuf can be returned to
+ *  the pool
+ *
+ *  - otherwise (if reference counter is not one), decrement reference
+ *  counter and return non-zero value to prevent freeing the backing mbuf.
+ *
+ * Returns non zero if mbuf should not be freed.
+ */
+static inline uint16_t __rte_pktmbuf_detach_on_free(struct rte_mbuf *m)
+{
+	if (RTE_MBUF_HAS_EXTBUF(m)) {
+		uint32_t flags = rte_pktmbuf_priv_flags(m->pool);
+
+		if (flags & RTE_PKTMBUF_POOL_F_PINNED_EXT_BUF) {
+			struct rte_mbuf_ext_shared_info *shinfo;
+
+			/* Clear flags, mbuf is being freed. */
+			m->ol_flags = EXT_ATTACHED_MBUF;
+			shinfo = m->shinfo;
+			/* Optimize for performance - do not dec/reinit */
+			if (likely(rte_mbuf_ext_refcnt_read(shinfo) == 1))
+				return 0;
+			/*
+			 * Direct usage of add primitive to avoid
+			 * duplication of comparing with one.
+			 */
+			if (likely(rte_atomic16_add_return
+					(&shinfo->refcnt_atomic, -1)))
+				return 1;
+			/* Reinitialize counter before mbuf freeing. */
+			rte_mbuf_ext_refcnt_set(shinfo, 1);
+			return 0;
+		}
+	}
+	rte_pktmbuf_detach(m);
+	return 0;
 }
 
 /**
@@ -1198,7 +1277,8 @@ rte_pktmbuf_prefree_seg(struct rte_mbuf *m)
 	if (likely(rte_mbuf_refcnt_read(m) == 1)) {
 
 		if (!RTE_MBUF_DIRECT(m))
-			rte_pktmbuf_detach(m);
+			if (__rte_pktmbuf_detach_on_free(m))
+				return NULL;
 
 		if (m->next != NULL) {
 			m->next = NULL;
@@ -1210,7 +1290,8 @@ rte_pktmbuf_prefree_seg(struct rte_mbuf *m)
 	} else if (__rte_mbuf_refcnt_update(m, -1) == 0) {
 
 		if (!RTE_MBUF_DIRECT(m))
-			rte_pktmbuf_detach(m);
+			if (__rte_pktmbuf_detach_on_free(m))
+				return NULL;
 
 		if (m->next != NULL) {
 			m->next = NULL;
