@@ -705,7 +705,10 @@ rte_mempool_get_ops(int ops_index)
 }
 
 /**
- * @internal Wrapper for mempool_ops alloc callback.
+ * Wrapper for mempool_ops alloc callback.
+ *
+ * If pool data is already allocated, the function does nothing
+ * and is succesful.
  *
  * @param mp
  *   Pointer to the memory pool.

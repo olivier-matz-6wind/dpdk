@@ -278,21 +278,6 @@ rte_mempool_free_memchunks(struct rte_mempool *mp)
 	}
 }
 
-static int
-mempool_ops_alloc_once(struct rte_mempool *mp)
-{
-	int ret;
-
-	/* create the internal ring if not already done */
-	if ((mp->flags & MEMPOOL_F_POOL_CREATED) == 0) {
-		ret = rte_mempool_ops_alloc(mp);
-		if (ret != 0)
-			return ret;
-		mp->flags |= MEMPOOL_F_POOL_CREATED;
-	}
-	return 0;
-}
-
 /* Add objects in the pool, using a physically contiguous memory
  * zone. Return the number of objects added, or a negative value
  * on error.
@@ -307,7 +292,7 @@ __rte_mempool_populate_iova(struct rte_mempool *mp, char *vaddr,
 	struct rte_mempool_memhdr *memhdr;
 	int ret;
 
-	ret = mempool_ops_alloc_once(mp);
+	ret = rte_mempool_ops_alloc(mp);
 	if (ret != 0)
 		return ret;
 
@@ -396,7 +381,7 @@ rte_mempool_populate_virt(struct rte_mempool *mp, char *addr,
 	size_t off, phys_len;
 	int ret, cnt = 0;
 
-	ret = mempool_ops_alloc_once(mp);
+	ret = rte_mempool_ops_alloc(mp);
 	if (ret != 0)
 		return ret;
 
@@ -485,7 +470,7 @@ rte_mempool_populate_default(struct rte_mempool *mp)
 	int ret;
 	bool need_iova_contig_obj;
 
-	ret = mempool_ops_alloc_once(mp);
+	ret = rte_mempool_ops_alloc(mp);
 	if (ret != 0)
 		return ret;
 
@@ -665,7 +650,7 @@ rte_mempool_populate_anon(struct rte_mempool *mp)
 		return 0;
 	}
 
-	ret = mempool_ops_alloc_once(mp);
+	ret = rte_mempool_ops_alloc(mp);
 	if (ret != 0)
 		return ret;
 

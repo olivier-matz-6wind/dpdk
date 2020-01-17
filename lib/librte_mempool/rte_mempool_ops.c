@@ -73,9 +73,17 @@ int
 rte_mempool_ops_alloc(struct rte_mempool *mp)
 {
 	struct rte_mempool_ops *ops;
+	int ret;
 
-	ops = rte_mempool_get_ops(mp->ops_index);
-	return ops->alloc(mp);
+	if ((mp->flags & MEMPOOL_F_POOL_CREATED) == 0) {
+		ops = rte_mempool_get_ops(mp->ops_index);
+		ret = ops->alloc(mp);
+		if (ret != 0)
+			return ret;
+		mp->flags |= MEMPOOL_F_POOL_CREATED;
+	}
+
+	return 0;
 }
 
 /* wrapper to free an external pool ops. */
