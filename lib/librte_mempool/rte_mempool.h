@@ -915,6 +915,8 @@ rte_mempool_set_ops_byname(struct rte_mempool *mp, const char *name,
  */
 int rte_mempool_register_ops(const struct rte_mempool_ops *ops);
 
+void rte_mempool_ops_init(void);
+
 /**
  * Macro to statically register the ops of a mempool handler.
  * Note that the rte_mempool_register_ops fails silently here when
@@ -923,6 +925,7 @@ int rte_mempool_register_ops(const struct rte_mempool_ops *ops);
 #define MEMPOOL_REGISTER_OPS(ops)				\
 	RTE_INIT(mp_hdlr_init_##ops)				\
 	{							\
+		rte_mempool_ops_init();				\
 		rte_mempool_register_ops(&ops);			\
 	}
 

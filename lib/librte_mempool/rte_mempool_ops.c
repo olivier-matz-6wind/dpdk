@@ -10,8 +10,11 @@
 #include <rte_mempool.h>
 #include <rte_errno.h>
 #include <rte_dev.h>
+#include <rte_bus_vdev.h>
 
 #include "rte_mempool_trace.h"
+
+#define RTE_MEMPOOL_OPS_MZNAME "rte_mempool_ops"
 
 /* indirect jump table to support external memory pools. */
 struct rte_mempool_ops_table rte_mempool_ops_table = {
@@ -19,13 +22,24 @@ struct rte_mempool_ops_table rte_mempool_ops_table = {
 	.num_ops = 0
 };
 
+/* shared mempool ops table, for multiprocess support */
+struct rte_mempool_shared_ops_table {
+	size_t count;
+	struct {
+		char name[RTE_MEMPOOL_OPS_NAMESIZE];
+	} ops[RTE_MEMPOOL_MAX_OPS_IDX];
+};
+static struct rte_mempool_shared_ops_table *shared_ops_table;
+
 /* add a new ops struct in rte_mempool_ops_table, return its index. */
 int
 rte_mempool_register_ops(const struct rte_mempool_ops *h)
 {
 	struct rte_mempool_ops *ops;
 	int16_t ops_index;
+	unsigned int count, i;
 
+	printf("register %s\n", h->name);
 	rte_spinlock_lock(&rte_mempool_ops_table.sl);
 
 	if (rte_mempool_ops_table.num_ops >=
@@ -46,13 +60,46 @@ rte_mempool_register_ops(const struct rte_mempool_ops *h)
 
 	if (strlen(h->name) >= sizeof(ops->name) - 1) {
 		rte_spinlock_unlock(&rte_mempool_ops_table.sl);
-		RTE_LOG(DEBUG, EAL, "%s(): mempool_ops <%s>: name too long\n",
+		RTE_LOG(DEBUG, MEMPOOL, "%s(): mempool_ops <%s>: name too long\n",
 				__func__, h->name);
-		rte_errno = EEXIST;
-		return -EEXIST;
+		rte_errno = ENAMETOOLONG;
+		return -ENAMETOOLONG;
 	}
 
-	ops_index = rte_mempool_ops_table.num_ops++;
+	for (i = 0; i < rte_mempool_ops_table.num_ops; i++) {
+		if (!strcmp(h->name, rte_mempool_ops_table.ops[i].name)) {
+			rte_spinlock_unlock(&rte_mempool_ops_table.sl);
+			RTE_LOG(DEBUG, MEMPOOL,
+				"%s(): mempool_ops <%s>: already registered\n",
+				__func__, h->name);
+			rte_errno = EEXIST;
+			return -EEXIST;
+		}
+	}
+
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY ||
+			shared_ops_table == NULL) {
+		ops_index = rte_mempool_ops_table.num_ops;
+	} else {
+		/* lookup in shared memory to get the same index */
+		count = shared_ops_table->count;
+		rte_rmb();
+		for (i = 0; i < count; i++) {
+			if (!strcmp(h->name, shared_ops_table->ops[i].name))
+				break;
+		}
+		if (i == count) {
+			rte_spinlock_unlock(&rte_mempool_ops_table.sl);
+			RTE_LOG(DEBUG, MEMPOOL,
+				"%s(): mempool_ops <%s>: not registered in primary process\n",
+				__func__, h->name);
+			rte_errno = EEXIST;
+			return -EEXIST;
+		}
+		ops_index = i;
+	}
+
+	rte_mempool_ops_table.num_ops = ops_index + 1;
 	ops = &rte_mempool_ops_table.ops[ops_index];
 	strlcpy(ops->name, h->name, sizeof(ops->name));
 	ops->alloc = h->alloc;
@@ -64,6 +111,15 @@ rte_mempool_register_ops(const struct rte_mempool_ops *h)
 	ops->populate = h->populate;
 	ops->get_info = h->get_info;
 	ops->dequeue_contig_blocks = h->dequeue_contig_blocks;
+
+	/* update shared memory */
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
+			shared_ops_table != NULL) {
+		strlcpy(shared_ops_table->ops[ops_index].name, h->name,
+			sizeof(ops->name));
+		rte_wmb();
+		shared_ops_table->count++;
+	}
 
 	rte_spinlock_unlock(&rte_mempool_ops_table.sl);
 
@@ -186,4 +242,83 @@ rte_mempool_set_ops_byname(struct rte_mempool *mp, const char *name,
 	mp->pool_config = pool_config;
 	rte_mempool_trace_set_ops_byname(mp, name, pool_config);
 	return 0;
+}
+
+/* Allocate and initialize the shared memory. */
+static void
+rte_mempool_ops_shm_init(void)
+{
+	const struct rte_memzone *mz;
+
+	printf("rte_mempool_ops_shm_init\n");
+
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+		mz = rte_memzone_reserve(RTE_MEMPOOL_OPS_MZNAME,
+					sizeof(*shared_ops_table),
+					SOCKET_ID_ANY, 0);
+	} else {
+		mz = rte_memzone_lookup(RTE_MEMPOOL_OPS_MZNAME);
+	}
+	if (mz == NULL) {
+		RTE_LOG(ERR, MEMPOOL,
+			"Failed to register shared memzone for mempool ops\n");
+		return;
+	}
+
+	shared_ops_table = mz->addr;
+
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+		/* init free_space, keep it sync'd with
+		 * rte_mbuf_dynfield_copy().
+		 */
+		memset(shared_ops_table, 0, sizeof(*shared_ops_table));
+	}
+}
+
+static void
+rte_mempool_ops_bus_scan(void *arg)
+{
+	static struct rte_devargs devargs = { 0 };
+	struct rte_devargs *pdevargs = &devargs;
+
+	(void)arg;
+	printf("bus scan\n");
+	devargs.bus = rte_bus_find_by_name("vdev");
+	devargs.type = RTE_DEVTYPE_VIRTUAL;
+	devargs.policy = RTE_DEV_WHITELISTED;
+	snprintf(devargs.name, sizeof(devargs.name), "%s", "mempool_ops_0");
+
+	rte_devargs_insert(&pdevargs);
+}
+
+static int
+mempool_ops_probe(struct rte_vdev_device *vdev)
+{
+	(void)vdev;
+	printf("probe\n");
+	rte_mempool_ops_shm_init();
+	return 0;
+}
+
+static struct rte_vdev_driver mempool_ops_drv = {
+	.probe = mempool_ops_probe,
+	.remove = NULL,
+};
+
+RTE_PMD_REGISTER_VDEV(mempool_ops, mempool_ops_drv);
+
+void
+rte_mempool_ops_init(void)
+{
+	static int initialized = 0;
+
+	if (initialized)
+		return;
+
+	printf("rte_mempool_ops_init\n");
+	initialized = 1;
+	/* register a callback that will be invoked once memory subsystem is
+	 * initialized.
+	 */
+	rte_vdev_add_custom_scan(rte_mempool_ops_bus_scan, NULL);
 }
