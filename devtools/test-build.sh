@@ -282,7 +282,7 @@ for conf in $configs ; do
 			echo -n "================== Build $conf "
 			echo "($DPDK_ABI_REF_VERSION)"
 			${MAKE} -j$J \
-				EXTRA_CFLAGS="$test_cflags $DPDK_DEP_CFLAGS -O0 -g" \
+				EXTRA_CFLAGS="$test_cflags $DPDK_DEP_CFLAGS" \
 				EXTRA_LDFLAGS="$DPDK_DEP_LDFLAGS" $verbose \
 				O=$abirefdir/build
 			export RTE_TARGET=$target
