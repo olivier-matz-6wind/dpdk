@@ -33,6 +33,8 @@ get_file_line(void)
 
 		if (loc >= MAX_LINE_CHAR - 1)
 			return -ENOMEM;
+		if (c == '\r')
+			continue;
 		if (c == '\n')
 			break;
 		line[loc++] = c;
