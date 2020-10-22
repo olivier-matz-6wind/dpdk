@@ -1273,7 +1273,7 @@ rte_eal_init(int argc, char **argv)
 	ret = rte_service_init();
 	if (ret) {
 		rte_eal_init_alert("rte_service_init() failed");
-		rte_errno = ENOEXEC;
+		rte_errno = -ret;
 		return -1;
 	}
 
