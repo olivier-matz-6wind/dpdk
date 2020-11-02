@@ -14,6 +14,7 @@ arch_headers = files(
 	'rte_cycles.h',
 	'rte_io_64.h',
 	'rte_io.h',
+	'rte_mcslock.h',
 	'rte_memcpy_32.h',
 	'rte_memcpy_64.h',
 	'rte_memcpy.h',

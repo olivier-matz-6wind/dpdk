@@ -11,6 +11,7 @@ arch_headers = files(
 	'rte_cpuflags.h',
 	'rte_cycles.h',
 	'rte_io.h',
+	'rte_mcslock.h',
 	'rte_memcpy.h',
 	'rte_prefetch.h',
 	'rte_pause.h',
