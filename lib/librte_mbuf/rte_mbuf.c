@@ -129,10 +129,8 @@ rte_pktmbuf_free_pinned_extmem(void *addr, void *opaque)
 
 	rte_mbuf_ext_refcnt_set(m->shinfo, 1);
 	m->ol_flags = EXT_ATTACHED_MBUF;
-	if (m->next != NULL) {
-		m->next = NULL;
-		m->nb_segs = 1;
-	}
+	m->next = NULL;
+	m->nb_segs = 1;
 	rte_mbuf_raw_free(m);
 }
 
