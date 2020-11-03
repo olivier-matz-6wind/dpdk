@@ -1329,10 +1329,8 @@ rte_pktmbuf_prefree_seg(struct rte_mbuf *m)
 				return NULL;
 		}
 
-		if (m->next != NULL) {
-			m->next = NULL;
-			m->nb_segs = 1;
-		}
+		m->next = NULL;
+		m->nb_segs = 1;
 
 		return m;
 
@@ -1346,10 +1344,8 @@ rte_pktmbuf_prefree_seg(struct rte_mbuf *m)
 				return NULL;
 		}
 
-		if (m->next != NULL) {
-			m->next = NULL;
-			m->nb_segs = 1;
-		}
+		m->next = NULL;
+		m->nb_segs = 1;
 		rte_mbuf_refcnt_set(m, 1);
 
 		return m;
