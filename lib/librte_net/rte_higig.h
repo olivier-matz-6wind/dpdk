@@ -6,6 +6,14 @@
 #ifndef _RTE_HIGIG_H_
 #define _RTE_HIGIG_H_
 
+/**
+ * @file
+ *
+ * HIGIG2 headers definition.
+ *
+ * It is a layer 2.5 protocol and used in Broadcom switches.
+ */
+
 #include <stdint.h>
 #include <rte_byteorder.h>
 

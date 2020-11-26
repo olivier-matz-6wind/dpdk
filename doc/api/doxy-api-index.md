@@ -114,7 +114,12 @@ The public API headers are grouped by topics:
   [GRO]                (@ref rte_gro.h),
   [GSO]                (@ref rte_gso.h),
   [frag/reass]         (@ref rte_ip_frag.h),
-  [VXLAN]              (@ref rte_vxlan.h)
+  [VXLAN]              (@ref rte_vxlan.h),
+  [eCPRI]              (@ref rte_ecpri.h),
+  [Geneve]             (@ref rte_geneve.h),
+  [GRE]                (@ref rte_gre.h),
+  [ICMP]               (@ref rte_icmp.h),
+  [MPLS]               (@ref rte_mpls.h)
 
 - **QoS**:
   [metering]           (@ref rte_meter.h),
