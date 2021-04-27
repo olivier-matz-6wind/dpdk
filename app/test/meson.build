@@ -17,6 +17,7 @@ test_sources = files(
         'test_bitmap.c',
         'test_bpf.c',
         'test_byteorder.c',
+        'test_cksum.c',
         'test_cmdline.c',
         'test_cmdline_cirbuf.c',
         'test_cmdline_etheraddr.c',
