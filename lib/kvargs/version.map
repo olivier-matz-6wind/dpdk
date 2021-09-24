@@ -16,4 +16,6 @@ EXPERIMENTAL {
 
 	rte_kvargs_strcmp;
 
+	# added in 21.11
+	rte_kvargs_get_with_value;
 };

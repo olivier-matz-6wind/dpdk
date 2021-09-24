@@ -204,19 +204,32 @@ rte_kvargs_free(struct rte_kvargs *kvlist)
 	free(kvlist);
 }
 
+/* Lookup a value in an rte_kvargs list by its key and value. */
+const char *
+rte_kvargs_get_with_value(const struct rte_kvargs *kvlist, const char *key,
+			  const char *value)
+{
+	unsigned int i;
+
+	if (kvlist == NULL)
+		return NULL;
+	for (i = 0; i < kvlist->count; ++i) {
+		if (key != NULL && strcmp(kvlist->pairs[i].key, key) != 0)
+			continue;
+		if (value != NULL && strcmp(kvlist->pairs[i].value, value) != 0)
+			continue;
+		return kvlist->pairs[i].value;
+	}
+	return NULL;
+}
+
 /* Lookup a value in an rte_kvargs list by its key. */
 const char *
 rte_kvargs_get(const struct rte_kvargs *kvlist, const char *key)
 {
-	unsigned int i;
-
 	if (kvlist == NULL || key == NULL)
 		return NULL;
-	for (i = 0; i < kvlist->count; ++i) {
-		if (strcmp(kvlist->pairs[i].key, key) == 0)
-			return kvlist->pairs[i].value;
-	}
-	return NULL;
+	return rte_kvargs_get_with_value(kvlist, key, NULL);
 }
 
 /*
