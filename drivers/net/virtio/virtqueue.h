@@ -639,19 +639,19 @@ virtqueue_notify(struct virtqueue *vq)
 static inline void
 virtqueue_xmit_offload(struct virtio_net_hdr *hdr, struct rte_mbuf *cookie)
 {
-	uint64_t csum_l4 = cookie->ol_flags & PKT_TX_L4_MASK;
+	uint64_t csum_l4 = cookie->ol_flags & RTE_MBUF_F_TX_L4_MASK;
 
-	if (cookie->ol_flags & PKT_TX_TCP_SEG)
-		csum_l4 |= PKT_TX_TCP_CKSUM;
+	if (cookie->ol_flags & RTE_MBUF_F_TX_TCP_SEG)
+		csum_l4 |= RTE_MBUF_F_TX_TCP_CKSUM;
 
 	switch (csum_l4) {
-	case PKT_TX_UDP_CKSUM:
+	case RTE_MBUF_F_TX_UDP_CKSUM:
 		hdr->csum_start = cookie->l2_len + cookie->l3_len;
 		hdr->csum_offset = offsetof(struct rte_udp_hdr, dgram_cksum);
 		hdr->flags = VIRTIO_NET_HDR_F_NEEDS_CSUM;
 		break;
 
-	case PKT_TX_TCP_CKSUM:
+	case RTE_MBUF_F_TX_TCP_CKSUM:
 		hdr->csum_start = cookie->l2_len + cookie->l3_len;
 		hdr->csum_offset = offsetof(struct rte_tcp_hdr, cksum);
 		hdr->flags = VIRTIO_NET_HDR_F_NEEDS_CSUM;
@@ -665,8 +665,8 @@ virtqueue_xmit_offload(struct virtio_net_hdr *hdr, struct rte_mbuf *cookie)
 	}
 
 	/* TCP Segmentation Offload */
-	if (cookie->ol_flags & PKT_TX_TCP_SEG) {
-		hdr->gso_type = (cookie->ol_flags & PKT_TX_IPV6) ?
+	if (cookie->ol_flags & RTE_MBUF_F_TX_TCP_SEG) {
+		hdr->gso_type = (cookie->ol_flags & RTE_MBUF_F_TX_IPV6) ?
 			VIRTIO_NET_HDR_GSO_TCPV6 :
 			VIRTIO_NET_HDR_GSO_TCPV4;
 		hdr->gso_size = cookie->tso_segsz;

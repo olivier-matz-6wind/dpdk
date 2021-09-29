@@ -590,7 +590,7 @@ pkt_flag_process(const struct rte_ipsec_session *ss,
 
 	k = 0;
 	for (i = 0; i != num; i++) {
-		if ((mb[i]->ol_flags & PKT_RX_SEC_OFFLOAD_FAILED) == 0)
+		if ((mb[i]->ol_flags & RTE_MBUF_F_RX_SEC_OFFLOAD_FAILED) == 0)
 			k++;
 		else
 			dr[i - k] = i;

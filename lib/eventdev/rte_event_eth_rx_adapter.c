@@ -869,8 +869,8 @@ rxa_buffer_mbufs(struct rte_event_eth_rx_adapter *rx_adapter,
 	uint16_t dropped;
 
 	if (!eth_rx_queue_info->ena_vector) {
-		/* 0xffff ffff if PKT_RX_RSS_HASH is set, otherwise 0 */
-		rss_mask = ~(((m->ol_flags & PKT_RX_RSS_HASH) != 0) - 1);
+		/* 0xffff ffff if RTE_MBUF_F_RX_RSS_HASH is set, otherwise 0 */
+		rss_mask = ~(((m->ol_flags & RTE_MBUF_F_RX_RSS_HASH) != 0) - 1);
 		do_rss = !rss_mask && !eth_rx_queue_info->flow_id_mask;
 		for (i = 0; i < num; i++) {
 			m = mbufs[i];

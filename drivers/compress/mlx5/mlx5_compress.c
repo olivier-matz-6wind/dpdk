@@ -470,7 +470,7 @@ mlx5_compress_addr2mr(struct mlx5_compress_priv *priv, uintptr_t addr,
 		return lkey;
 	/* Take slower bottom-half on miss. */
 	return mlx5_mr_addr2mr_bh(priv->pd, 0, &priv->mr_scache, mr_ctrl, addr,
-				  !!(ol_flags & EXT_ATTACHED_MBUF));
+				  !!(ol_flags & RTE_MBUF_F_EXTERNAL));
 }
 
 static __rte_always_inline uint32_t

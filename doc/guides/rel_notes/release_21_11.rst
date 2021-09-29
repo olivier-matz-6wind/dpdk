@@ -229,6 +229,9 @@ API Changes
   the crypto/security operation. This field will be used to communicate
   events such as soft expiry with IPsec in lookaside mode.
 
+* mbuf: The mbuf offload flags ``PKT_*`` are renamed as ``RTE_MBUF_F_*``. A
+  compatibility layer will be kept until DPDK 22.11.
+
 
 ABI Changes
 -----------

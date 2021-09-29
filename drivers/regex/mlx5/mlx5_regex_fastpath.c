@@ -139,7 +139,7 @@ mlx5_regex_addr2mr(struct mlx5_regex_priv *priv, struct mlx5_mr_ctrl *mr_ctrl,
 		return lkey;
 	/* Take slower bottom-half on miss. */
 	return mlx5_mr_addr2mr_bh(priv->pd, 0, &priv->mr_scache, mr_ctrl, addr,
-				  !!(mbuf->ol_flags & EXT_ATTACHED_MBUF));
+				  !!(mbuf->ol_flags & RTE_MBUF_F_EXTERNAL));
 }
 
 
