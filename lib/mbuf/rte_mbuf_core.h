@@ -56,35 +56,10 @@ extern "C" {
 #define PKT_RX_FDIR          (1ULL << 2)
 
 /**
- * Deprecated.
- * Checking this flag alone is deprecated: check the 2 bits of
- * PKT_RX_L4_CKSUM_MASK.
- * This flag was set when the L4 checksum of a packet was detected as
- * wrong by the hardware.
- */
-#define PKT_RX_L4_CKSUM_BAD  (1ULL << 3)
-
-/**
- * Deprecated.
- * Checking this flag alone is deprecated: check the 2 bits of
- * PKT_RX_IP_CKSUM_MASK.
- * This flag was set when the IP checksum of a packet was detected as
- * wrong by the hardware.
- */
-#define PKT_RX_IP_CKSUM_BAD  (1ULL << 4)
-
-/**
  * This flag is set when the outermost IP header checksum is detected as
  * wrong by the hardware.
  */
 #define PKT_RX_OUTER_IP_CKSUM_BAD (1ULL << 5)
-
-/**
- * Deprecated.
- * This flag has been renamed, use PKT_RX_OUTER_IP_CKSUM_BAD instead.
- */
-#define PKT_RX_EIP_CKSUM_BAD \
-	RTE_DEPRECATED(PKT_RX_EIP_CKSUM_BAD) PKT_RX_OUTER_IP_CKSUM_BAD
 
 /**
  * A vlan has been stripped by the hardware and its tci is saved in
@@ -289,8 +264,6 @@ extern "C" {
  * mbuf 'vlan_tci' & 'vlan_tci_outer' must be valid when this flag is set.
  */
 #define PKT_TX_QINQ        (1ULL << 49)
-/** This old name is deprecated. */
-#define PKT_TX_QINQ_PKT    PKT_TX_QINQ
 
 /**
  * TCP segmentation offload. To enable this offload feature for a
@@ -358,8 +331,6 @@ extern "C" {
  * mbuf 'vlan_tci' field must be valid when this flag is set.
  */
 #define PKT_TX_VLAN          (1ULL << 57)
-/* this old name is deprecated */
-#define PKT_TX_VLAN_PKT      PKT_TX_VLAN
 
 /**
  * Offload the IP checksum of an external header in the hardware. The
@@ -391,14 +362,14 @@ extern "C" {
 		PKT_TX_OUTER_IPV6 |	 \
 		PKT_TX_OUTER_IPV4 |	 \
 		PKT_TX_OUTER_IP_CKSUM |  \
-		PKT_TX_VLAN_PKT |        \
+		PKT_TX_VLAN |        \
 		PKT_TX_IPV6 |		 \
 		PKT_TX_IPV4 |		 \
 		PKT_TX_IP_CKSUM |        \
 		PKT_TX_L4_MASK |         \
 		PKT_TX_IEEE1588_TMST |	 \
 		PKT_TX_TCP_SEG |         \
-		PKT_TX_QINQ_PKT |        \
+		PKT_TX_QINQ |        \
 		PKT_TX_TUNNEL_MASK |	 \
 		PKT_TX_MACSEC |		 \
 		PKT_TX_SEC_OFFLOAD |	 \

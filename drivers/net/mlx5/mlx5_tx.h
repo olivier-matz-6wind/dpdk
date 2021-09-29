@@ -538,7 +538,7 @@ txq_mbuf_to_swp(struct mlx5_txq_local *__rte_restrict loc,
 	 * should be set regardless of HW offload.
 	 */
 	off = loc->mbuf->outer_l2_len;
-	if (MLX5_TXOFF_CONFIG(VLAN) && ol & PKT_TX_VLAN_PKT)
+	if (MLX5_TXOFF_CONFIG(VLAN) && ol & PKT_TX_VLAN)
 		off += sizeof(struct rte_vlan_hdr);
 	set = (off >> 1) << 8; /* Outer L3 offset. */
 	off += loc->mbuf->outer_l3_len;
@@ -956,7 +956,7 @@ mlx5_tx_eseg_none(struct mlx5_txq_data *__rte_restrict txq __rte_unused,
 		       *RTE_FLOW_DYNF_METADATA(loc->mbuf) : 0 : 0;
 	/* Engage VLAN tag insertion feature if requested. */
 	if (MLX5_TXOFF_CONFIG(VLAN) &&
-	    loc->mbuf->ol_flags & PKT_TX_VLAN_PKT) {
+	    loc->mbuf->ol_flags & PKT_TX_VLAN) {
 		/*
 		 * We should get here only if device support
 		 * this feature correctly.
@@ -1814,7 +1814,7 @@ mlx5_tx_packet_multi_tso(struct mlx5_txq_data *__rte_restrict txq,
 	 * the required space in WQE ring buffer.
 	 */
 	dlen = rte_pktmbuf_pkt_len(loc->mbuf);
-	if (MLX5_TXOFF_CONFIG(VLAN) && loc->mbuf->ol_flags & PKT_TX_VLAN_PKT)
+	if (MLX5_TXOFF_CONFIG(VLAN) && loc->mbuf->ol_flags & PKT_TX_VLAN)
 		vlan = sizeof(struct rte_vlan_hdr);
 	inlen = loc->mbuf->l2_len + vlan +
 		loc->mbuf->l3_len + loc->mbuf->l4_len;
@@ -1929,7 +1929,7 @@ mlx5_tx_packet_multi_send(struct mlx5_txq_data *__rte_restrict txq,
 	/* Update sent data bytes counter. */
 	txq->stats.obytes += rte_pktmbuf_pkt_len(loc->mbuf);
 	if (MLX5_TXOFF_CONFIG(VLAN) &&
-	    loc->mbuf->ol_flags & PKT_TX_VLAN_PKT)
+	    loc->mbuf->ol_flags & PKT_TX_VLAN)
 		txq->stats.obytes += sizeof(struct rte_vlan_hdr);
 #endif
 	/*
@@ -2028,7 +2028,7 @@ mlx5_tx_packet_multi_inline(struct mlx5_txq_data *__rte_restrict txq,
 	 * to estimate the required space for WQE.
 	 */
 	dlen = rte_pktmbuf_pkt_len(loc->mbuf);
-	if (MLX5_TXOFF_CONFIG(VLAN) && loc->mbuf->ol_flags & PKT_TX_VLAN_PKT)
+	if (MLX5_TXOFF_CONFIG(VLAN) && loc->mbuf->ol_flags & PKT_TX_VLAN)
 		vlan = sizeof(struct rte_vlan_hdr);
 	inlen = dlen + vlan;
 	/* Check against minimal length. */
@@ -2291,7 +2291,7 @@ mlx5_tx_burst_tso(struct mlx5_txq_data *__rte_restrict txq,
 		}
 		dlen = rte_pktmbuf_data_len(loc->mbuf);
 		if (MLX5_TXOFF_CONFIG(VLAN) &&
-		    loc->mbuf->ol_flags & PKT_TX_VLAN_PKT) {
+		    loc->mbuf->ol_flags & PKT_TX_VLAN) {
 			vlan = sizeof(struct rte_vlan_hdr);
 		}
 		/*
@@ -2416,7 +2416,7 @@ mlx5_tx_able_to_empw(struct mlx5_txq_data *__rte_restrict txq,
 		return MLX5_TXCMP_CODE_SINGLE;
 	/* Check if eMPW can be engaged. */
 	if (MLX5_TXOFF_CONFIG(VLAN) &&
-	    unlikely(loc->mbuf->ol_flags & PKT_TX_VLAN_PKT) &&
+	    unlikely(loc->mbuf->ol_flags & PKT_TX_VLAN) &&
 		(!MLX5_TXOFF_CONFIG(INLINE) ||
 		 unlikely((rte_pktmbuf_data_len(loc->mbuf) +
 			   sizeof(struct rte_vlan_hdr)) > txq->inlen_empw))) {
@@ -2478,7 +2478,7 @@ mlx5_tx_match_empw(struct mlx5_txq_data *__rte_restrict txq,
 		return false;
 	/* There must be no VLAN packets in eMPW loop. */
 	if (MLX5_TXOFF_CONFIG(VLAN))
-		MLX5_ASSERT(!(loc->mbuf->ol_flags & PKT_TX_VLAN_PKT));
+		MLX5_ASSERT(!(loc->mbuf->ol_flags & PKT_TX_VLAN));
 	/* Check if the scheduling is requested. */
 	if (MLX5_TXOFF_CONFIG(TXPP) &&
 	    loc->mbuf->ol_flags & txq->ts_mask)
@@ -2939,7 +2939,7 @@ mlx5_tx_burst_empw_inline(struct mlx5_txq_data *__rte_restrict txq,
 			}
 			/* Inline entire packet, optional VLAN insertion. */
 			if (MLX5_TXOFF_CONFIG(VLAN) &&
-			    loc->mbuf->ol_flags & PKT_TX_VLAN_PKT) {
+			    loc->mbuf->ol_flags & PKT_TX_VLAN) {
 				/*
 				 * The packet length must be checked in
 				 * mlx5_tx_able_to_empw() and packet
@@ -3004,7 +3004,7 @@ pointer_empw:
 			MLX5_ASSERT(room >= MLX5_WQE_DSEG_SIZE);
 			if (MLX5_TXOFF_CONFIG(VLAN))
 				MLX5_ASSERT(!(loc->mbuf->ol_flags &
-					    PKT_TX_VLAN_PKT));
+					    PKT_TX_VLAN));
 			mlx5_tx_dseg_ptr(txq, loc, dseg, dptr, dlen, olx);
 			/* We have to store mbuf in elts.*/
 			txq->elts[txq->elts_head++ & txq->elts_m] = loc->mbuf;
@@ -3149,7 +3149,7 @@ mlx5_tx_burst_single_send(struct mlx5_txq_data *__rte_restrict txq,
 
 			inlen = rte_pktmbuf_data_len(loc->mbuf);
 			if (MLX5_TXOFF_CONFIG(VLAN) &&
-			    loc->mbuf->ol_flags & PKT_TX_VLAN_PKT) {
+			    loc->mbuf->ol_flags & PKT_TX_VLAN) {
 				vlan = sizeof(struct rte_vlan_hdr);
 				inlen += vlan;
 			}
@@ -3380,7 +3380,7 @@ single_no_inline:
 			/* Update sent data bytes counter. */
 			txq->stats.obytes += rte_pktmbuf_data_len(loc->mbuf);
 			if (MLX5_TXOFF_CONFIG(VLAN) &&
-			    loc->mbuf->ol_flags & PKT_TX_VLAN_PKT)
+			    loc->mbuf->ol_flags & PKT_TX_VLAN)
 				txq->stats.obytes +=
 					sizeof(struct rte_vlan_hdr);
 #endif

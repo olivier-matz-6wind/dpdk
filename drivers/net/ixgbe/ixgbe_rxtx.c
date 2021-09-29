@@ -64,7 +64,7 @@
 		PKT_TX_OUTER_IPV4 |		 \
 		PKT_TX_IPV6 |			 \
 		PKT_TX_IPV4 |			 \
-		PKT_TX_VLAN_PKT |		 \
+		PKT_TX_VLAN |		 \
 		PKT_TX_IP_CKSUM |		 \
 		PKT_TX_L4_MASK |		 \
 		PKT_TX_TCP_SEG |		 \
@@ -384,7 +384,7 @@ ixgbe_set_xmit_ctx(struct ixgbe_tx_queue *txq,
 	/* Specify which HW CTX to upload. */
 	mss_l4len_idx |= (ctx_idx << IXGBE_ADVTXD_IDX_SHIFT);
 
-	if (ol_flags & PKT_TX_VLAN_PKT) {
+	if (ol_flags & PKT_TX_VLAN) {
 		tx_offload_mask.vlan_tci |= ~0;
 	}
 
@@ -543,7 +543,7 @@ tx_desc_ol_flags_to_cmdtype(uint64_t ol_flags)
 {
 	uint32_t cmdtype = 0;
 
-	if (ol_flags & PKT_TX_VLAN_PKT)
+	if (ol_flags & PKT_TX_VLAN)
 		cmdtype |= IXGBE_ADVTXD_DCMD_VLE;
 	if (ol_flags & PKT_TX_TCP_SEG)
 		cmdtype |= IXGBE_ADVTXD_DCMD_TSE;
