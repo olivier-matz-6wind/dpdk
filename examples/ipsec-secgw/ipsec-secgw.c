@@ -466,7 +466,7 @@ prepare_one_packet(struct rte_mbuf *pkt, struct ipsec_traffic *t)
 	 * with the security session.
 	 */
 
-	if (pkt->ol_flags & PKT_RX_SEC_OFFLOAD &&
+	if (pkt->ol_flags & RTE_MBUF_F_RX_SEC_OFFLOAD &&
 			rte_security_dynfield_is_registered()) {
 		struct ipsec_sa *sa;
 		struct ipsec_mbuf_metadata *priv;
@@ -533,7 +533,7 @@ prepare_tx_pkt(struct rte_mbuf *pkt, uint16_t port,
 		ip->ip_sum = 0;
 
 		/* calculate IPv4 cksum in SW */
-		if ((pkt->ol_flags & PKT_TX_IP_CKSUM) == 0)
+		if ((pkt->ol_flags & RTE_MBUF_F_TX_IP_CKSUM) == 0)
 			ip->ip_sum = rte_ipv4_cksum((struct rte_ipv4_hdr *)ip);
 
 		ethhdr->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
@@ -696,7 +696,7 @@ inbound_sp_sa(struct sp_ctx *sp, struct sa_ctx *sa, struct traffic_type *ip,
 		}
 
 		/* Only check SPI match for processed IPSec packets */
-		if (i < lim && ((m->ol_flags & PKT_RX_SEC_OFFLOAD) == 0)) {
+		if (i < lim && ((m->ol_flags & RTE_MBUF_F_RX_SEC_OFFLOAD) == 0)) {
 			free_pkts(&m, 1);
 			continue;
 		}
@@ -978,7 +978,7 @@ route4_pkts(struct rt_ctx *rt_ctx, struct rte_mbuf *pkts[], uint8_t nb_pkts)
 	 */
 
 	for (i = 0; i < nb_pkts; i++) {
-		if (!(pkts[i]->ol_flags & PKT_TX_SEC_OFFLOAD)) {
+		if (!(pkts[i]->ol_flags & RTE_MBUF_F_TX_SEC_OFFLOAD)) {
 			/* Security offload not enabled. So an LPM lookup is
 			 * required to get the hop
 			 */
@@ -995,7 +995,7 @@ route4_pkts(struct rt_ctx *rt_ctx, struct rte_mbuf *pkts[], uint8_t nb_pkts)
 	lpm_pkts = 0;
 
 	for (i = 0; i < nb_pkts; i++) {
-		if (pkts[i]->ol_flags & PKT_TX_SEC_OFFLOAD) {
+		if (pkts[i]->ol_flags & RTE_MBUF_F_TX_SEC_OFFLOAD) {
 			/* Read hop from the SA */
 			pkt_hop = get_hop_for_offload_pkt(pkts[i], 0);
 		} else {
@@ -1029,7 +1029,7 @@ route6_pkts(struct rt_ctx *rt_ctx, struct rte_mbuf *pkts[], uint8_t nb_pkts)
 	 */
 
 	for (i = 0; i < nb_pkts; i++) {
-		if (!(pkts[i]->ol_flags & PKT_TX_SEC_OFFLOAD)) {
+		if (!(pkts[i]->ol_flags & RTE_MBUF_F_TX_SEC_OFFLOAD)) {
 			/* Security offload not enabled. So an LPM lookup is
 			 * required to get the hop
 			 */
@@ -1047,7 +1047,7 @@ route6_pkts(struct rt_ctx *rt_ctx, struct rte_mbuf *pkts[], uint8_t nb_pkts)
 	lpm_pkts = 0;
 
 	for (i = 0; i < nb_pkts; i++) {
-		if (pkts[i]->ol_flags & PKT_TX_SEC_OFFLOAD) {
+		if (pkts[i]->ol_flags & RTE_MBUF_F_TX_SEC_OFFLOAD) {
 			/* Read hop from the SA */
 			pkt_hop = get_hop_for_offload_pkt(pkts[i], 1);
 		} else {
@@ -2302,10 +2302,10 @@ port_init(uint16_t portid, uint64_t req_rx_offloads, uint64_t req_tx_offloads)
 		qconf->tx_queue_id[portid] = tx_queueid;
 
 		/* Pre-populate pkt offloads based on capabilities */
-		qconf->outbound.ipv4_offloads = PKT_TX_IPV4;
-		qconf->outbound.ipv6_offloads = PKT_TX_IPV6;
+		qconf->outbound.ipv4_offloads = RTE_MBUF_F_TX_IPV4;
+		qconf->outbound.ipv6_offloads = RTE_MBUF_F_TX_IPV6;
 		if (local_port_conf.txmode.offloads & DEV_TX_OFFLOAD_IPV4_CKSUM)
-			qconf->outbound.ipv4_offloads |= PKT_TX_IP_CKSUM;
+			qconf->outbound.ipv4_offloads |= RTE_MBUF_F_TX_IP_CKSUM;
 
 		tx_queueid++;
 

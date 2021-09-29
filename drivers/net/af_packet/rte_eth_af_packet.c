@@ -147,7 +147,7 @@ eth_af_packet_rx(void *queue, struct rte_mbuf **bufs, uint16_t nb_pkts)
 		/* check for vlan info */
 		if (ppd->tp_status & TP_STATUS_VLAN_VALID) {
 			mbuf->vlan_tci = ppd->tp_vlan_tci;
-			mbuf->ol_flags |= (PKT_RX_VLAN | PKT_RX_VLAN_STRIPPED);
+			mbuf->ol_flags |= (RTE_MBUF_F_RX_VLAN | RTE_MBUF_F_RX_VLAN_STRIPPED);
 		}
 
 		/* release incoming frame and advance ring buffer */
@@ -224,7 +224,7 @@ eth_af_packet_tx(void *queue, struct rte_mbuf **bufs, uint16_t nb_pkts)
 		}
 
 		/* insert vlan info if necessary */
-		if (mbuf->ol_flags & PKT_TX_VLAN) {
+		if (mbuf->ol_flags & RTE_MBUF_F_TX_VLAN) {
 			if (rte_vlan_insert(&mbuf)) {
 				rte_pktmbuf_free(mbuf);
 				continue;

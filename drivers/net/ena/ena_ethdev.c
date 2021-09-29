@@ -120,9 +120,9 @@ static const struct ena_stats ena_stats_rx_strings[] = {
 			DEV_TX_OFFLOAD_UDP_CKSUM |\
 			DEV_TX_OFFLOAD_IPV4_CKSUM |\
 			DEV_TX_OFFLOAD_TCP_TSO)
-#define MBUF_OFFLOADS (PKT_TX_L4_MASK |\
-		       PKT_TX_IP_CKSUM |\
-		       PKT_TX_TCP_SEG)
+#define MBUF_OFFLOADS (RTE_MBUF_F_TX_L4_MASK |\
+		       RTE_MBUF_F_TX_IP_CKSUM |\
+		       RTE_MBUF_F_TX_TCP_SEG)
 
 /** Vendor ID used by Amazon devices */
 #define PCI_VENDOR_ID_AMAZON 0x1D0F
@@ -130,15 +130,14 @@ static const struct ena_stats ena_stats_rx_strings[] = {
 #define PCI_DEVICE_ID_ENA_VF		0xEC20
 #define PCI_DEVICE_ID_ENA_VF_RSERV0	0xEC21
 
-#define	ENA_TX_OFFLOAD_MASK	(\
-	PKT_TX_L4_MASK |         \
-	PKT_TX_IPV6 |            \
-	PKT_TX_IPV4 |            \
-	PKT_TX_IP_CKSUM |        \
-	PKT_TX_TCP_SEG)
+#define	ENA_TX_OFFLOAD_MASK	(RTE_MBUF_F_TX_L4_MASK |         \
+	RTE_MBUF_F_TX_IPV6 |            \
+	RTE_MBUF_F_TX_IPV4 |            \
+	RTE_MBUF_F_TX_IP_CKSUM |        \
+	RTE_MBUF_F_TX_TCP_SEG)
 
 #define	ENA_TX_OFFLOAD_NOTSUP_MASK	\
-	(PKT_TX_OFFLOAD_MASK ^ ENA_TX_OFFLOAD_MASK)
+	(RTE_MBUF_F_TX_OFFLOAD_MASK ^ ENA_TX_OFFLOAD_MASK)
 
 static const struct rte_pci_id pci_id_ena_map[] = {
 	{ RTE_PCI_DEVICE(PCI_VENDOR_ID_AMAZON, PCI_DEVICE_ID_ENA_VF) },
@@ -274,24 +273,24 @@ static inline void ena_rx_mbuf_prepare(struct rte_mbuf *mbuf,
 	if (ena_rx_ctx->l3_proto == ENA_ETH_IO_L3_PROTO_IPV4) {
 		packet_type |= RTE_PTYPE_L3_IPV4;
 		if (unlikely(ena_rx_ctx->l3_csum_err))
-			ol_flags |= PKT_RX_IP_CKSUM_BAD;
+			ol_flags |= RTE_MBUF_F_RX_IP_CKSUM_BAD;
 		else
-			ol_flags |= PKT_RX_IP_CKSUM_GOOD;
+			ol_flags |= RTE_MBUF_F_RX_IP_CKSUM_GOOD;
 	} else if (ena_rx_ctx->l3_proto == ENA_ETH_IO_L3_PROTO_IPV6) {
 		packet_type |= RTE_PTYPE_L3_IPV6;
 	}
 
 	if (!ena_rx_ctx->l4_csum_checked || ena_rx_ctx->frag)
-		ol_flags |= PKT_RX_L4_CKSUM_UNKNOWN;
+		ol_flags |= RTE_MBUF_F_RX_L4_CKSUM_UNKNOWN;
 	else
 		if (unlikely(ena_rx_ctx->l4_csum_err))
-			ol_flags |= PKT_RX_L4_CKSUM_BAD;
+			ol_flags |= RTE_MBUF_F_RX_L4_CKSUM_BAD;
 		else
-			ol_flags |= PKT_RX_L4_CKSUM_GOOD;
+			ol_flags |= RTE_MBUF_F_RX_L4_CKSUM_GOOD;
 
 	if (fill_hash &&
 	    likely((packet_type & ENA_PTYPE_HAS_HASH) && !ena_rx_ctx->frag)) {
-		ol_flags |= PKT_RX_RSS_HASH;
+		ol_flags |= RTE_MBUF_F_RX_RSS_HASH;
 		mbuf->hash.rss = ena_rx_ctx->hash;
 	}
 
@@ -309,7 +308,7 @@ static inline void ena_tx_mbuf_prepare(struct rte_mbuf *mbuf,
 	if ((mbuf->ol_flags & MBUF_OFFLOADS) &&
 	    (queue_offloads & QUEUE_OFFLOADS)) {
 		/* check if TSO is required */
-		if ((mbuf->ol_flags & PKT_TX_TCP_SEG) &&
+		if ((mbuf->ol_flags & RTE_MBUF_F_TX_TCP_SEG) &&
 		    (queue_offloads & DEV_TX_OFFLOAD_TCP_TSO)) {
 			ena_tx_ctx->tso_enable = true;
 
@@ -317,11 +316,11 @@ static inline void ena_tx_mbuf_prepare(struct rte_mbuf *mbuf,
 		}
 
 		/* check if L3 checksum is needed */
-		if ((mbuf->ol_flags & PKT_TX_IP_CKSUM) &&
+		if ((mbuf->ol_flags & RTE_MBUF_F_TX_IP_CKSUM) &&
 		    (queue_offloads & DEV_TX_OFFLOAD_IPV4_CKSUM))
 			ena_tx_ctx->l3_csum_enable = true;
 
-		if (mbuf->ol_flags & PKT_TX_IPV6) {
+		if (mbuf->ol_flags & RTE_MBUF_F_TX_IPV6) {
 			ena_tx_ctx->l3_proto = ENA_ETH_IO_L3_PROTO_IPV6;
 		} else {
 			ena_tx_ctx->l3_proto = ENA_ETH_IO_L3_PROTO_IPV4;
@@ -334,12 +333,12 @@ static inline void ena_tx_mbuf_prepare(struct rte_mbuf *mbuf,
 		}
 
 		/* check if L4 checksum is needed */
-		if (((mbuf->ol_flags & PKT_TX_L4_MASK) == PKT_TX_TCP_CKSUM) &&
+		if (((mbuf->ol_flags & RTE_MBUF_F_TX_L4_MASK) == RTE_MBUF_F_TX_TCP_CKSUM) &&
 		    (queue_offloads & DEV_TX_OFFLOAD_TCP_CKSUM)) {
 			ena_tx_ctx->l4_proto = ENA_ETH_IO_L4_PROTO_TCP;
 			ena_tx_ctx->l4_csum_enable = true;
-		} else if (((mbuf->ol_flags & PKT_TX_L4_MASK) ==
-				PKT_TX_UDP_CKSUM) &&
+		} else if (((mbuf->ol_flags & RTE_MBUF_F_TX_L4_MASK) ==
+				RTE_MBUF_F_TX_UDP_CKSUM) &&
 				(queue_offloads & DEV_TX_OFFLOAD_UDP_CKSUM)) {
 			ena_tx_ctx->l4_proto = ENA_ETH_IO_L4_PROTO_UDP;
 			ena_tx_ctx->l4_csum_enable = true;
@@ -2151,7 +2150,7 @@ static uint16_t eth_ena_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 		ena_rx_mbuf_prepare(mbuf, &ena_rx_ctx, fill_hash);
 
 		if (unlikely(mbuf->ol_flags &
-				(PKT_RX_IP_CKSUM_BAD | PKT_RX_L4_CKSUM_BAD))) {
+				(RTE_MBUF_F_RX_IP_CKSUM_BAD | RTE_MBUF_F_RX_L4_CKSUM_BAD))) {
 			rte_atomic64_inc(&rx_ring->adapter->drv_stats->ierrors);
 			++rx_ring->rx_stats.bad_csum;
 		}
@@ -2193,7 +2192,7 @@ eth_ena_prep_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 		m = tx_pkts[i];
 		ol_flags = m->ol_flags;
 
-		if (!(ol_flags & PKT_TX_IPV4))
+		if (!(ol_flags & RTE_MBUF_F_TX_IPV4))
 			continue;
 
 		/* If there was not L2 header length specified, assume it is
@@ -2217,8 +2216,8 @@ eth_ena_prep_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 		}
 
 		if ((ol_flags & ENA_TX_OFFLOAD_NOTSUP_MASK) != 0 ||
-				(ol_flags & PKT_TX_L4_MASK) ==
-				PKT_TX_SCTP_CKSUM) {
+				(ol_flags & RTE_MBUF_F_TX_L4_MASK) ==
+				RTE_MBUF_F_TX_SCTP_CKSUM) {
 			rte_errno = ENOTSUP;
 			return i;
 		}
@@ -2237,7 +2236,7 @@ eth_ena_prep_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
 		 */
 
 		ret = rte_net_intel_cksum_flags_prepare(m,
-			ol_flags & ~PKT_TX_TCP_SEG);
+			ol_flags & ~RTE_MBUF_F_TX_TCP_SEG);
 		if (ret != 0) {
 			rte_errno = -ret;
 			return i;

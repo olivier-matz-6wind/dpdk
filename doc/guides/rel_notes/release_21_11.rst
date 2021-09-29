@@ -141,6 +141,10 @@ Removed Items
   blacklist/whitelist are removed. Users must use the new
   block/allow list arguments.
 
+* mbuf: The mbuf offload flags ``PKT_*`` are renamed as ``RTE_MBUF_F_*``. A
+  compatibility layer will be kept until DPDK 22.11, except for the flags that
+  are already deprecated (``PKT_RX_L4_CKSUM_BAD``, ``PKT_RX_IP_CKSUM_BAD``,
+  ``PKT_RX_EIP_CKSUM_BAD``, ``PKT_TX_QINQ_PKT``), and which are now removed.
 
 API Changes
 -----------
