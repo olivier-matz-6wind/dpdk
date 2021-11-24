@@ -153,6 +153,7 @@ test_sources = files(
         'test_trace.c',
         'test_trace_register.c',
         'test_trace_perf.c',
+        'test_vdev.c',
         'test_version.c',
         'virtual_pmd.c',
 )
@@ -177,6 +178,7 @@ test_deps = [
         'ipsec',
         'lpm',
         'member',
+        'net_null',
         'node',
         'pipeline',
         'port',
@@ -283,6 +285,7 @@ fast_tests = [
         ['service_autotest', true],
         ['thash_autotest', true],
         ['trace_autotest', true],
+        ['vdev_autotest', true],
 ]
 
 # Tests known to have issues or which don't belong in other tests lists.

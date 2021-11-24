@@ -12,6 +12,8 @@
 #include <rte_bus.h>
 #include <rte_class.h>
 
+#include <rte_bus_vdev.h>
+
 #include "test.h"
 
 /* Check layer arguments. */
