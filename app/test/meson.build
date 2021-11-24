@@ -153,7 +153,6 @@ test_sources = files(
         'test_trace.c',
         'test_trace_register.c',
         'test_trace_perf.c',
-        'test_vdev.c',
         'test_version.c',
         'virtual_pmd.c',
 )
@@ -178,7 +177,6 @@ test_deps = [
         'ipsec',
         'lpm',
         'member',
-        'net_null',
         'node',
         'pipeline',
         'port',
@@ -285,7 +283,6 @@ fast_tests = [
         ['service_autotest', true],
         ['thash_autotest', true],
         ['trace_autotest', true],
-        ['vdev_autotest', true],
 ]
 
 # Tests known to have issues or which don't belong in other tests lists.
@@ -428,6 +425,11 @@ if dpdk_conf.has('RTE_NET_RING')
         test_sources += 'test_pdump.c'
         fast_tests += [['pdump_autotest', true]]
     endif
+endif
+if dpdk_conf.has('RTE_NET_NULL')
+    test_deps += 'net_null'
+    test_sources += 'test_vdev.c'
+    fast_tests += [['vdev_autotest', true]]
 endif
 
 if dpdk_conf.has('RTE_HAS_LIBPCAP')
