@@ -503,8 +503,7 @@ API Changes
 * eal: Made ``rte_intr_handle`` structure definition hidden.
 
 * kvargs: The experimental function ``rte_kvargs_strcmp()`` has been
-  removed. Its usages have been replaced by a new function
-  ``rte_kvargs_get_with_value()``.
+  removed.
 
 * cmdline: ``cmdline_stdin_exit()`` now frees the ``cmdline`` structure.
   Calls to ``cmdline_free()`` after it need to be deleted from applications.
