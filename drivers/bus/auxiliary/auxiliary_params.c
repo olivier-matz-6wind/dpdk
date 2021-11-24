@@ -14,10 +14,12 @@
 
 enum auxiliary_params {
 	RTE_AUXILIARY_PARAM_NAME,
+	RTE_AUXILIARY_PARAM_MAX,
 };
 
 static const char * const auxiliary_params_keys[] = {
 	[RTE_AUXILIARY_PARAM_NAME] = "name",
+	[RTE_AUXILIARY_PARAM_MAX] = NULL,
 };
 
 static int
