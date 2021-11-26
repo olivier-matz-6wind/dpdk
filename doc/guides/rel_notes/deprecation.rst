@@ -125,3 +125,9 @@ Deprecation Notices
   applications should be updated to use the ``dmadev`` library instead,
   with the underlying HW-functionality being provided by the ``ioat`` or
   ``idxd`` dma drivers
+
+* bus: during devices probing, the ``device->numa_node`` field will be
+  set to SOCKET_ID_ANY when the bus is not able to associate a NUMA node
+  to the device. Some bus drivers like PCI currently defaults to 0 in
+  that case, which can be a problem if this NUMA socket is not used.
+  The behavior will change starting from v22.07.
