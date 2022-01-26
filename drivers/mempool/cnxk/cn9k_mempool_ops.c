@@ -3,6 +3,7 @@
  */
 
 #include <rte_mempool.h>
+#include <rte_mempool_driver.h>
 
 #include "roc_api.h"
 #include "cnxk_mempool.h"

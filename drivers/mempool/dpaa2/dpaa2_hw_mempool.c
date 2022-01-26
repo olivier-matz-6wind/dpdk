@@ -22,6 +22,7 @@
 #include <rte_kvargs.h>
 #include <rte_dev.h>
 #include "rte_dpaa2_mempool.h"
+#include <rte_mempool_driver.h>
 
 #include "fslmc_vfio.h"
 #include <fslmc_logs.h>

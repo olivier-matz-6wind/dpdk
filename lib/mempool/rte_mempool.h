@@ -688,7 +688,11 @@ struct rte_mempool_ops {
  */
 struct rte_mempool_ops_table {
 	rte_spinlock_t sl;     /**< Spinlock for add/delete. */
-	uint32_t num_ops;      /**< Number of used ops structs in the table. */
+	/**
+	 * Number of used ops structs in the table. Note: in a secondary
+	 * process, some ops_index can be higher than num_ops.
+	 */
+	uint32_t num_ops;
 	/**
 	 * Storage for all possible ops structs.
 	 */
@@ -922,22 +926,16 @@ rte_mempool_set_ops_byname(struct rte_mempool *mp, const char *name,
  *   Pointer to an ops structure to register.
  * @return
  *   - >=0: Success; return the index of the ops struct in the table.
- *   - -EINVAL - some missing callbacks while registering ops struct.
- *   - -ENOSPC - the maximum number of ops structs has been reached.
+ *   - -EINVAL: some missing callbacks while registering ops struct.
+ *   - -ENOSPC: the maximum number of ops structs has been reached, or
+ *              the maximum number of memzones has already been allocated
+ *   - -ENOMEM: no appropriate memory area found in which to create memzone
+ *   - -EXISTS: the mempool ops are already registered (primary process only)
+ *   - -ENOENT: the mempool ops are not registered on primary process
+ *              (secondary process only)
+ *   - -ENAMETOOLONG: the name of the mempool ops is too long
  */
 int rte_mempool_register_ops(const struct rte_mempool_ops *ops);
-
-/**
- * Macro to statically register the ops of a mempool handler.
- * Note that the rte_mempool_register_ops fails silently here when
- * more than RTE_MEMPOOL_MAX_OPS_IDX is registered.
- */
-#define RTE_MEMPOOL_REGISTER_OPS(ops)				\
-	RTE_INIT(mp_hdlr_init_##ops)				\
-	{							\
-		rte_mempool_register_ops(&ops);			\
-	}
-
 
 /**
  * An object callback function for mempool.

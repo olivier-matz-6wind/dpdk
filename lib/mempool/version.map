@@ -71,4 +71,7 @@ INTERNAL {
 	# added in 21.11
 	rte_mempool_event_callback_register;
 	rte_mempool_event_callback_unregister;
+
+	# added in 22.03
+	rte_mempool_ops_shm_init;
 };

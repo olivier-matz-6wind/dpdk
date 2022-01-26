@@ -9,9 +9,10 @@
 #include <rte_string_fns.h>
 #include <rte_mempool.h>
 #include <rte_errno.h>
-#include <rte_dev.h>
 
 #include "rte_mempool_trace.h"
+
+#define RTE_MEMPOOL_OPS_MZNAME "rte_mempool_ops"
 
 /* indirect jump table to support external memory pools. */
 struct rte_mempool_ops_table rte_mempool_ops_table = {
@@ -19,21 +20,66 @@ struct rte_mempool_ops_table rte_mempool_ops_table = {
 	.num_ops = 0
 };
 
+/* shared mempool ops table, for multiprocess support */
+struct rte_mempool_shared_ops_table {
+	size_t count;
+	struct {
+		char name[RTE_MEMPOOL_OPS_NAMESIZE];
+	} ops[RTE_MEMPOOL_MAX_OPS_IDX];
+};
+static struct rte_mempool_shared_ops_table *shared_ops_table;
+
+/* Allocate and initialize the shared memory. */
+static int
+rte_mempool_ops_shm_init(void)
+{
+	const struct rte_memzone *mz;
+	static int saved_ret = -EAGAIN;
+
+	if (saved_ret != -EAGAIN)
+		return saved_ret;
+
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+		mz = rte_memzone_reserve(RTE_MEMPOOL_OPS_MZNAME,
+					sizeof(*shared_ops_table),
+					SOCKET_ID_ANY, 0);
+		if (mz == NULL) {
+			saved_ret = -rte_errno;
+			return saved_ret;
+		}
+		shared_ops_table = mz->addr;
+		memset(shared_ops_table, 0, sizeof(*shared_ops_table));
+	} else {
+		mz = rte_memzone_lookup(RTE_MEMPOOL_OPS_MZNAME);
+		if (mz == NULL) {
+			saved_ret = -ENOENT;
+			return saved_ret;
+		}
+		shared_ops_table = mz->addr;
+	}
+
+	saved_ret = 0;
+	return saved_ret;
+}
+
 /* add a new ops struct in rte_mempool_ops_table, return its index. */
 int
 rte_mempool_register_ops(const struct rte_mempool_ops *h)
 {
 	struct rte_mempool_ops *ops;
 	int16_t ops_index;
+	unsigned int i;
+	int ret;
 
 	rte_spinlock_lock(&rte_mempool_ops_table.sl);
 
-	if (rte_mempool_ops_table.num_ops >=
-			RTE_MEMPOOL_MAX_OPS_IDX) {
+	ret = rte_mempool_ops_shm_init();
+	if (ret < 0) {
 		rte_spinlock_unlock(&rte_mempool_ops_table.sl);
 		RTE_LOG(ERR, MEMPOOL,
-			"Maximum number of mempool ops structs exceeded\n");
-		return -ENOSPC;
+			"Failed to register shared memzone for mempool ops: %s\n",
+			strerror(-ret));
+		return ret;
 	}
 
 	if (h->alloc == NULL || h->enqueue == NULL ||
@@ -46,13 +92,50 @@ rte_mempool_register_ops(const struct rte_mempool_ops *h)
 
 	if (strlen(h->name) >= sizeof(ops->name) - 1) {
 		rte_spinlock_unlock(&rte_mempool_ops_table.sl);
-		RTE_LOG(DEBUG, EAL, "%s(): mempool_ops <%s>: name too long\n",
+		RTE_LOG(ERR, MEMPOOL, "%s(): mempool_ops <%s>: name too long\n",
 				__func__, h->name);
-		rte_errno = EEXIST;
-		return -EEXIST;
+		rte_errno = ENAMETOOLONG;
+		return -ENAMETOOLONG;
 	}
 
-	ops_index = rte_mempool_ops_table.num_ops++;
+	/* lookup for ops in shared memory */
+	for (i = 0; i < RTE_MEMPOOL_MAX_OPS_IDX; i++) {
+		if (!strcmp(h->name, shared_ops_table->ops[i].name))
+			break;
+	}
+
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+		if (i < RTE_MEMPOOL_MAX_OPS_IDX) {
+			rte_spinlock_unlock(&rte_mempool_ops_table.sl);
+			RTE_LOG(ERR, MEMPOOL,
+				"%s(): mempool_ops <%s>: already registered\n",
+				__func__, h->name);
+			rte_errno = EEXIST;
+			return -EEXIST;
+		}
+		ops_index = shared_ops_table->count;
+	} else {
+		if (i == RTE_MEMPOOL_MAX_OPS_IDX) {
+			rte_spinlock_unlock(&rte_mempool_ops_table.sl);
+			RTE_LOG(ERR, MEMPOOL,
+				"%s(): mempool_ops <%s>: not registered in primary process\n",
+				__func__, h->name);
+			rte_errno = ENOENT;
+			return -ENOENT;
+		}
+		ops_index = i;
+	}
+
+	if (ops_index >= RTE_MEMPOOL_MAX_OPS_IDX) {
+		rte_spinlock_unlock(&rte_mempool_ops_table.sl);
+		RTE_LOG(ERR, MEMPOOL,
+			"Maximum number of mempool ops structs exceeded\n");
+		rte_errno = ENOSPC;
+		return -ENOSPC;
+	}
+
+	/* update local table */
+	rte_mempool_ops_table.num_ops++;
 	ops = &rte_mempool_ops_table.ops[ops_index];
 	strlcpy(ops->name, h->name, sizeof(ops->name));
 	ops->alloc = h->alloc;
@@ -64,6 +147,13 @@ rte_mempool_register_ops(const struct rte_mempool_ops *h)
 	ops->populate = h->populate;
 	ops->get_info = h->get_info;
 	ops->dequeue_contig_blocks = h->dequeue_contig_blocks;
+
+	/* update shared memory on primary process */
+	if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
+		strlcpy(shared_ops_table->ops[ops_index].name, h->name,
+			sizeof(ops->name));
+		shared_ops_table->count++;
+	}
 
 	rte_spinlock_unlock(&rte_mempool_ops_table.sl);
 
@@ -171,9 +261,8 @@ rte_mempool_set_ops_byname(struct rte_mempool *mp, const char *name,
 	if (mp->flags & RTE_MEMPOOL_F_POOL_CREATED)
 		return -EEXIST;
 
-	for (i = 0; i < rte_mempool_ops_table.num_ops; i++) {
-		if (!strcmp(name,
-				rte_mempool_ops_table.ops[i].name)) {
+	for (i = 0; i < RTE_MEMPOOL_MAX_OPS_IDX; i++) {
+		if (!strcmp(name, rte_mempool_ops_table.ops[i].name)) {
 			ops = &rte_mempool_ops_table.ops[i];
 			break;
 		}
