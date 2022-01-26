@@ -24,6 +24,7 @@
 #include <rte_eal.h>
 #include <rte_malloc.h>
 #include <rte_ring.h>
+#include <rte_mempool_driver.h>
 
 #include <dpaa_mempool.h>
 #include <dpaax_iova_table.h>

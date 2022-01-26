@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <rte_mempool.h>
+#include <rte_mempool_driver.h>
 #include <rte_malloc.h>
 #include <rte_mbuf.h>
 

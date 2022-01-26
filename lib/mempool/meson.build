@@ -20,4 +20,8 @@ headers = files(
         'rte_mempool_trace.h',
         'rte_mempool_trace_fp.h',
 )
+driver_sdk_headers += files(
+        'rte_mempool_driver.h',
+)
+
 deps += ['ring', 'telemetry']

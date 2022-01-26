@@ -11,6 +11,6 @@ drivers = [
         'stack',
 ]
 
-std_deps = ['mempool']
+std_deps = ['mempool', 'bus_vdev']
 
 log_prefix = 'mempool'
