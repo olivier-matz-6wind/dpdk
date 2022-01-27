@@ -164,6 +164,31 @@ RTE_PMD_EXPORT_NAME(nm, __COUNTER__)
 #define RTE_PMD_REGISTER_ALIAS(nm, alias)\
 static const char *vdrvinit_ ## nm ## _alias = RTE_STR(alias)
 
+/**
+ * Load a virtual device at startup.
+ *
+ * This is typically used for devices that are present as soon as
+ * a driver is linked to the application.
+ *
+ * @param name
+ *   The name of the device, composed of the driver name and an
+ *   identifier (ex: net_null0).
+ */
+#define RTE_PMD_AUTOLOAD_VDEV(name)					\
+	static void							\
+	vdev_bus_scan_##name(void *arg)					\
+	{								\
+		RTE_SET_USED(arg);					\
+		if (rte_devargs_add(RTE_DEVTYPE_VIRTUAL, #name))	\
+			RTE_VDEV_LOG(ERR, "Failed to add %s devargs",	\
+				     #name);				\
+	}								\
+	RTE_INIT(vdev_init_##name)					\
+	{								\
+		rte_vdev_add_custom_scan(vdev_bus_scan_##name, NULL);	\
+	}
+
+
 typedef void (*rte_vdev_scan_callback)(void *user_arg);
 
 /**
