@@ -9,7 +9,7 @@
 #include <rte_kvargs.h>
 #include <rte_errno.h>
 
-#include "vdev_logs.h"
+#include "rte_bus_vdev.h"
 #include "vdev_private.h"
 
 enum vdev_params {
@@ -53,7 +53,7 @@ rte_vdev_dev_iterate(const void *start,
 	if (str != NULL) {
 		kvargs = rte_kvargs_parse(str, vdev_params_keys);
 		if (kvargs == NULL) {
-			VDEV_LOG(ERR, "cannot parse argument list\n");
+			RTE_VDEV_LOG(ERR, "cannot parse argument list\n");
 			rte_errno = EINVAL;
 			return NULL;
 		}

@@ -10,3 +10,9 @@ DPDK_22 {
 
 	local: *;
 };
+
+INTERNAL {
+	global:
+
+	vdev_logtype_bus;
+};

@@ -17,6 +17,21 @@ extern "C" {
 
 #include <rte_dev.h>
 #include <rte_devargs.h>
+#include <rte_log.h>
+
+/**
+ * @internal
+ * Log type for vdev related messages.
+ */
+extern int vdev_logtype_bus;
+
+/**
+ * @internal
+ * Log macro for vdev related messages.
+ */
+#define RTE_VDEV_LOG(level, fmt, ...) \
+	rte_log(RTE_LOG_ ## level, vdev_logtype_bus, "%s(): " fmt "\n", \
+		__func__, ##__VA_ARGS__)
 
 struct rte_vdev_device {
 	RTE_TAILQ_ENTRY(rte_vdev_device) next;      /**< Next attached vdev */

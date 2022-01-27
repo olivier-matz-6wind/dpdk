@@ -22,7 +22,6 @@
 #include <rte_errno.h>
 
 #include "rte_bus_vdev.h"
-#include "vdev_logs.h"
 #include "vdev_private.h"
 
 #define VDEV_MP_KEY	"bus_vdev_mp"
@@ -147,7 +146,7 @@ vdev_dma_map(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
 	}
 
 	if (!vdev->device.driver) {
-		VDEV_LOG(DEBUG, "no driver attach to device %s", dev->name);
+		RTE_VDEV_LOG(DEBUG, "no driver attach to device %s", dev->name);
 		return 1;
 	}
 
@@ -172,7 +171,7 @@ vdev_dma_unmap(struct rte_device *dev, void *addr, uint64_t iova, size_t len)
 	}
 
 	if (!vdev->device.driver) {
-		VDEV_LOG(DEBUG, "no driver attach to device %s", dev->name);
+		RTE_VDEV_LOG(DEBUG, "no driver attach to device %s", dev->name);
 		return 1;
 	}
 
@@ -197,15 +196,15 @@ vdev_probe_all_drivers(struct rte_vdev_device *dev)
 		return -EEXIST;
 
 	name = rte_vdev_device_name(dev);
-	VDEV_LOG(DEBUG, "Search driver to probe device %s", name);
+	RTE_VDEV_LOG(DEBUG, "Search driver to probe device %s", name);
 
 	if (vdev_parse(name, &driver))
 		return -1;
 
 	iova_mode = rte_eal_iova_mode();
 	if ((driver->drv_flags & RTE_VDEV_DRV_NEED_IOVA_AS_VA) && (iova_mode == RTE_IOVA_PA)) {
-		VDEV_LOG(ERR, "%s requires VA IOVA mode but current mode is PA, not initializing",
-				name);
+		RTE_VDEV_LOG(ERR, "%s requires VA IOVA mode but current mode is PA, not initializing",
+			     name);
 		return -1;
 	}
 
@@ -325,7 +324,8 @@ rte_vdev_init(const char *name, const char *args)
 		ret = vdev_probe_all_drivers(dev);
 		if (ret) {
 			if (ret > 0)
-				VDEV_LOG(ERR, "no driver found for %s", name);
+				RTE_VDEV_LOG(ERR, "no driver found for %s",
+					     name);
 			/* If fails, remove it from vdev list */
 			TAILQ_REMOVE(&vdev_device_list, dev, next);
 			rte_devargs_remove(dev->device.devargs);
@@ -343,7 +343,7 @@ vdev_remove_driver(struct rte_vdev_device *dev)
 	const struct rte_vdev_driver *driver;
 
 	if (!dev->device.driver) {
-		VDEV_LOG(DEBUG, "no driver attach to device %s", name);
+		RTE_VDEV_LOG(DEBUG, "no driver attach to device %s", name);
 		return 1;
 	}
 
@@ -427,14 +427,14 @@ vdev_action(const struct rte_mp_msg *mp_msg, const void *peer)
 		TAILQ_FOREACH(dev, &vdev_device_list, next) {
 			devname = rte_vdev_device_name(dev);
 			if (strlen(devname) == 0) {
-				VDEV_LOG(INFO, "vdev with no name is not sent");
+				RTE_VDEV_LOG(INFO, "vdev with no name is not sent");
 				continue;
 			}
-			VDEV_LOG(INFO, "send vdev, %s", devname);
+			RTE_VDEV_LOG(INFO, "send vdev, %s", devname);
 			strlcpy(ou->name, devname, RTE_DEV_NAME_MAX_LEN);
 			if (rte_mp_sendmsg(&mp_resp) < 0)
-				VDEV_LOG(ERR, "send vdev, %s, failed, %s",
-					 devname, strerror(rte_errno));
+				RTE_VDEV_LOG(ERR, "send vdev, %s, failed, %s",
+					     devname, strerror(rte_errno));
 			num++;
 		}
 		rte_spinlock_recursive_unlock(&vdev_device_list_lock);
@@ -442,18 +442,19 @@ vdev_action(const struct rte_mp_msg *mp_msg, const void *peer)
 		ou->type = VDEV_SCAN_REP;
 		ou->num = num;
 		if (rte_mp_reply(&mp_resp, peer) < 0)
-			VDEV_LOG(ERR, "Failed to reply a scan request");
+			RTE_VDEV_LOG(ERR, "Failed to reply a scan request");
 		break;
 	case VDEV_SCAN_ONE:
-		VDEV_LOG(INFO, "receive vdev, %s", in->name);
+		RTE_VDEV_LOG(INFO, "receive vdev, %s", in->name);
 		ret = insert_vdev(in->name, NULL, NULL, false);
 		if (ret == -EEXIST)
-			VDEV_LOG(DEBUG, "device already exist, %s", in->name);
+			RTE_VDEV_LOG(DEBUG, "device already exist, %s",
+				     in->name);
 		else if (ret < 0)
-			VDEV_LOG(ERR, "failed to add vdev, %s", in->name);
+			RTE_VDEV_LOG(ERR, "failed to add vdev, %s", in->name);
 		break;
 	default:
-		VDEV_LOG(ERR, "vdev cannot recognize this message");
+		RTE_VDEV_LOG(ERR, "vdev cannot recognize this message");
 	}
 
 	return 0;
@@ -472,7 +473,7 @@ vdev_scan(void)
 		if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
 				rte_errno == ENOTSUP)
 			goto scan;
-		VDEV_LOG(ERR, "Failed to add vdev mp action");
+		RTE_VDEV_LOG(ERR, "Failed to add vdev mp action");
 		return -1;
 	}
 
@@ -491,10 +492,10 @@ vdev_scan(void)
 		    mp_reply.nb_received == 1) {
 			mp_rep = &mp_reply.msgs[0];
 			resp = (struct vdev_param *)mp_rep->param;
-			VDEV_LOG(INFO, "Received %d vdevs", resp->num);
+			RTE_VDEV_LOG(INFO, "Received %d vdevs", resp->num);
 			free(mp_reply.msgs);
 		} else
-			VDEV_LOG(ERR, "Failed to request vdev from primary");
+			RTE_VDEV_LOG(ERR, "Failed to request vdev from primary");
 
 		/* Fall through to allow private vdevs in secondary process */
 	}
@@ -560,8 +561,8 @@ vdev_probe(void)
 		if (r != 0) {
 			if (r == -EEXIST)
 				continue;
-			VDEV_LOG(ERR, "failed to initialize %s device",
-				rte_vdev_device_name(dev));
+			RTE_VDEV_LOG(ERR, "failed to initialize %s device",
+				     rte_vdev_device_name(dev));
 			ret = -1;
 		}
 	}
