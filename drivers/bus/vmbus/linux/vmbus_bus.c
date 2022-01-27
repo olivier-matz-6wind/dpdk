@@ -285,17 +285,12 @@ vmbus_scan_one(const char *name)
 	dev->monitor_id = tmp;
 
 	/* get numa node (if present) */
-	snprintf(filename, sizeof(filename), "%s/numa_node",
-		 dirname);
-
-	if (access(filename, R_OK) == 0) {
-		if (eal_parse_sysfs_value(filename, &tmp) < 0)
-			goto error;
-		dev->device.numa_node = tmp;
-	} else {
-		/* if no NUMA support, set default to 0 */
+	snprintf(filename, sizeof(filename), "%s/numa_node", dirname);
+	if (access(filename, R_OK) == 0 &&
+	    eal_parse_sysfs_value(filename, &tmp) == 0)
 		dev->device.numa_node = SOCKET_ID_ANY;
-	}
+	else
+		dev->device.numa_node = tmp;
 
 	dev->device.devargs = vmbus_devargs_lookup(dev);
 

@@ -285,18 +285,13 @@ pci_scan_one(const char *dirname, const struct rte_pci_addr *addr)
 			dev->max_vfs = (uint16_t)tmp;
 	}
 
-	/* get numa node, default to 0 if not present */
-	snprintf(filename, sizeof(filename), "%s/numa_node",
-		 dirname);
-
-	if (access(filename, F_OK) != -1) {
-		if (eal_parse_sysfs_value(filename, &tmp) == 0)
-			dev->device.numa_node = tmp;
-		else
-			dev->device.numa_node = -1;
-	} else {
-		dev->device.numa_node = 0;
-	}
+	/* get numa node, default to SOCKET_ID_ANY if not present */
+	snprintf(filename, sizeof(filename), "%s/numa_node", dirname);
+	if (access(filename, F_OK) != -1 &&
+	    eal_parse_sysfs_value(filename, &tmp) == 0)
+		dev->device.numa_node = tmp;
+	else
+		dev->device.numa_node = SOCKET_ID_ANY;
 
 	pci_name_set(dev);
 
