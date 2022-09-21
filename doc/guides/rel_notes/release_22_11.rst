@@ -317,6 +317,12 @@ ABI Changes
 * eventdev: Added ``weight`` and ``affinity`` fields
   to ``rte_event_queue_conf`` structure.
 
+* bus: Changed the device numa node to -1 when NUMA information is unavailable.
+  The ``dev->device.numa_node`` field is set by each bus driver for
+  every device it manages to indicate on which NUMA node this device lies.
+  When this information is unknown, the assigned value was not consistent
+  across the bus drivers.
+
 
 Known Issues
 ------------
