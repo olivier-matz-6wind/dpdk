@@ -2445,8 +2445,8 @@ int rte_eth_hairpin_unbind(uint16_t tx_port, uint16_t rx_port);
  *   The port identifier of the Ethernet device
  * @return
  *   The NUMA socket ID to which the Ethernet device is connected or
- *   a default of zero if the socket could not be determined.
- *   -1 is returned is the port_id value is out of range.
+ *   a default of -1 (SOCKET_ID_ANY) if the socket could not be determined.
+ *   -1 is also returned if the port_id is invalid.
  */
 int rte_eth_dev_socket_id(uint16_t port_id);
 

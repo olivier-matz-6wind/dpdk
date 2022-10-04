@@ -321,7 +321,7 @@ ABI Changes
   The ``dev->device.numa_node`` field is set by each bus driver for
   every device it manages to indicate on which NUMA node this device lies.
   When this information is unknown, the assigned value was not consistent
-  across the bus drivers.
+  across the bus drivers. This similarly impacts ``rte_eth_dev_socket_id()``.
 
 
 Known Issues
